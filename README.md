@@ -2,8 +2,9 @@
 
 Takes log files from the DOI resolver servers and converts them to something a bit more usable and compact. Discards things we're not interested in, tidies up things that we are. Anonymises. Takes compressed log files as input.
 
+ - parses all the different date formats in play (currently 4) and converts to ISO8601
  - normalizes timezones to UTC
- - truncates times to the day 
+ - truncates times to the just day
  - normalizes date-rotated filenames for timezone and multiplexes log files
  - normalizes referrer domains, discards path
  - records referrer protocol
@@ -92,5 +93,8 @@ Examples of failures. These happen less than 10 times each so there's no point w
     perComponent5.prototype.GetFramesCollectionLen%20(jar:file:///C:/Program%20Files%20(x86)/Internet%20Download%20Manager/idmmzcc2.xpi!/components/idmhelper5.js:173)
     
     read:http://especiais.gazetaonline.com.br/bomba/
-      %C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5IDMCCHelperComponent5.prototype.GetLinks%20(jar:file:///C:/Program%20Files%20(x86)/Internet%20Download%20Manager/idmmzcc2.xpi!/components/idmhelper5.js:367)
+      
+    %C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5IDMCCHelperComponent5.prototype.GetLinks%20(jar:file:///C:/Program%20Files%20(x86)/Internet%20Download%20Manager/idmmzcc2.xpi!/components/idmhelper5.js:367)
+
+
     
