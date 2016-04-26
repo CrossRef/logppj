@@ -52,12 +52,8 @@ class NullOutputStream extends Writer {
   }
 }
 
-class Parser {
-  private Pattern re = Pattern.compile("^([\\d.]+) ([a-zA-Z:]+) (\"[^\"]*\") (\\d+) (\\d+) ([^\"]{1,2}|[^\"][^ ]*[^\"]|\"[^\"]*\") ([^\"]{1,2}|[^\"][^ ]*[^\"]|\"[^\"]*\") ([^\"]{1,2}|[^\"][^ ]*[^\"]|\"[^\"]*\") ([^\"]{1,2}|[^\"][^ ]*[^\"]|\"[^\"]*\")$");
-
-  // Pattern to handle OpenURL requests (for error handling).
-  private Pattern openurlRe = Pattern.compile("^([\\d.]+) HTTP:OpenURL");
-
+// A date parser. Stateful, as it uses the appropriate format and remembers what it used last time.
+class DateParser {
   // Different standards in use at different times. We have a pallate of formats available to us.
 
   // This one, as used in 2013 files, is compared by reference.
@@ -77,22 +73,6 @@ class Parser {
 
   // The current datetimeformatter that we've found that works. Can swap around depending on log files.
   private DateTimeFormatter currentDateFormatter = this.twentyThirteenFormatter;
-
-  // Mapping of date as YYYY-MM to file handle, which could be a NullOutputStream.
-  private Map<String, Writer> monthFiles = new HashMap<String, Writer>();
-
-  private File inputDirectory;
-  private File outputDirectory;
-
-  // A singleton null writer.
-  // This is used when a file isn't being overwritten. 
-  // Reference comparison against this.
-  private Writer nullWriter = new NullOutputStream();
-
-  Parser(File inputDirectory, File outputDirectory) {
-    this.inputDirectory = inputDirectory;
-    this.outputDirectory = outputDirectory;
-  }
 
   // Parse date into array of ["YYYY-MM", YYYY-MM-DD"] in UTC.
   String[] parseDate(String dateStr) {
@@ -140,6 +120,34 @@ class Parser {
     return new String[] {yearMonth, yearMonthDay};
   }
 
+}
+
+// A parser for log files.
+// Stateful, because it holds several file handles for multiplexing output.
+class Parser {
+  private Pattern re = Pattern.compile("^([\\d.]+) ([a-zA-Z:]+) (\"[^\"]*\") (\\d+) (\\d+) ([^\"]{1,2}|[^\"][^ ]*[^\"]|\"[^\"]*\") ([^\"]{1,2}|[^\"][^ ]*[^\"]|\"[^\"]*\") ([^\"]{1,2}|[^\"][^ ]*[^\"]|\"[^\"]*\") ([^\"]{1,2}|[^\"][^ ]*[^\"]|\"[^\"]*\")$");
+
+  // Pattern to handle OpenURL requests (for error handling).
+  private Pattern openurlRe = Pattern.compile("^([\\d.]+) HTTP:OpenURL");
+
+  // Mapping of date as YYYY-MM to file handle, which could be a NullOutputStream.
+  private Map<String, Writer> monthFiles = new HashMap<String, Writer>();
+
+  private DateParser dateParser = new DateParser();
+
+  private File inputDirectory;
+  private File outputDirectory;
+
+  // A singleton null writer.
+  // This is used when a file isn't being overwritten. 
+  // Reference comparison against this.
+  private Writer nullWriter = new NullOutputStream();
+
+  Parser(File inputDirectory, File outputDirectory) {
+    this.inputDirectory = inputDirectory;
+    this.outputDirectory = outputDirectory;
+  }
+
   // Parse referrer string into [code domain]
   // Code is 
   // "H" for HTTP protocol
@@ -167,7 +175,6 @@ class Parser {
           // e.g. "REFERER: http://archaeology.about.com/gi/o.htm"
           referrer = referrer.replaceAll("REFERER: *", "");
         }
-        
 
         // Next most common is a well-formed URL.
         URL url = new URL(referrer);
@@ -329,7 +336,7 @@ class Parser {
 
           // Strip quotes.
           dateStr = dateStr.substring(1, dateStr.length() - 1);
-          String[] parsedDate = parseDate(dateStr);
+          String[] parsedDate = this.dateParser.parseDate(dateStr);
 
           // Year-month for log file name, year-month-day for log entry.
           String yearMonth = parsedDate[0];
@@ -382,6 +389,8 @@ class Parser {
         // Every million lines. 
         if (totalLines % 1000000 == 0) {
           System.out.format("Processed lines: %d, characters: %d, failed: %d, OpenURL: %d", totalLines, totalChars, failedLines, openUrlIgnores);
+          
+          // This solves weird flushing issues.
           System.out.println("");
         }
       }
