@@ -441,14 +441,6 @@ class IdentityMap {
   Integer count() {
     return this.counter;
   }
-
-  Integer size() {
-    return this.entries.size();
-  }
-
-  Integer inverseSize() {
-    return this.inverseEntries.size();
-  }
 }
 
 class Partitioner {
@@ -481,6 +473,7 @@ interface AggregatorStrategy {
   int partition(String[] line);
 
   // Process the line.
+  // Line is [date, doi, code, possibly-domain]. Might be 3 or 4 long.
   void feed(String[] line);
 
   // Write everything to the output file.
@@ -529,7 +522,7 @@ class DOIAggregatorStrategy implements AggregatorStrategy {
 
     inputCount ++;
     if (inputCount % 1000000 == 0) {
-      System.out.format("Processed %d lines. Frequency table size: %d. Identity map size %d (%d, %d) \n", this.inputCount, this.counter.size(), this.doiIds.count(), this.doiIds.size(), this.doiIds.inverseSize());
+      System.out.format("Processed %d lines. Frequency table size: %d. Identity map size %d \n", this.inputCount, this.counter.size(), this.doiIds.count());
     }
   }
 
@@ -542,15 +535,78 @@ class DOIAggregatorStrategy implements AggregatorStrategy {
 
         String doi = this.doiIds.getInverse(Integer.parseInt(dateDoi[1]));
 
-        writer.write(date);
+        writer.write(doi);
         writer.write("\t");
 
-        writer.write(doi);
+        writer.write(date);
         writer.write("\t");
 
         writer.write(count.toString());
         writer.write("\n");
       }
+    }
+  }
+}
+
+// Count referrer type codes (e.g. https vs https) per day.
+class CodeAggregatorStrategy implements AggregatorStrategy {
+  // Ignore counts under this value.
+  long inputCount = 0;
+
+  // Map of Code, Date string => count.
+  HashMap<String, Integer> counter;
+  Partitioner partitioner;
+
+  CodeAggregatorStrategy() {
+    this.reset();
+  }
+
+  public int numPartitions() {
+    return 1;
+  }
+
+  public String fileName(String date) {
+    return String.format("%s-referrer-code",  date);
+  }
+
+  public void reset() {
+    this.counter = new HashMap<String, Integer>();
+    this.partitioner = new Partitioner(this.numPartitions());
+    this.inputCount = 0;
+  }
+
+  public int partition(String[] line) {
+    // No need to partition, the set codes is tiny.
+    return 0;
+  }
+
+  public void feed(String[] line) {
+    // date:code
+    String key = line[0] + ":" + line[2];
+    this.counter.put(key, this.counter.getOrDefault(key, 0) + 1);
+
+    inputCount ++;
+    if (inputCount % 1000000 == 0) {
+      System.out.format("Processed %d lines. Frequency table size: %d. \n", this.inputCount, this.counter.size());
+    }
+  }
+
+  public void write(Writer writer) throws IOException {
+    for (Map.Entry<String, Integer> entry : this.counter.entrySet()) {
+      Integer count = entry.getValue();
+      String[] dateCode = entry.getKey().split(":");
+      
+      // code
+      writer.write(dateCode[1]);
+      writer.write("\t");
+
+      // date
+      writer.write(dateCode[0]);
+      writer.write("\t");
+
+      // count
+      writer.write(count.toString());
+      writer.write("\n");
     }
   }
 }
@@ -640,10 +696,11 @@ public class Main {
     System.out.format("Process %s to %s\n", inputPath, outputPath);
     Aggregator aggregator = new Aggregator(input, output);
 
-    AggregatorStrategy doiStrategy = new DOIAggregatorStrategy();
+    // AggregatorStrategy strategy = new DOIAggregatorStrategy();
+    AggregatorStrategy strategy = new CodeAggregatorStrategy();
 
     try {
-      aggregator.run(doiStrategy);
+      aggregator.run(strategy);
     } catch (Exception e) {
       System.err.println("Error:");
       e.printStackTrace();

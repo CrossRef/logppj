@@ -116,12 +116,19 @@ Running with the `aggregate` command produces the following aggregations:
 
     time ant run -Darg0=aggregate -Darg1=/Users/jwass/data/logs-2016-processed -Darg2=/Users/jwass/data/logs-2016-aggregated
 
-Output is an unsorted file of entries.
+Output is an unsorted file of entries. Generally formatted as [«thing of interest», «date», «count»]. So if we wanted we could easliy sort by DOI then date.
 
 ## DOI per day
 
 File extension YYYY-MM-doi. Lines of the format:
 
-    YYYY-MM-DD DOI count
+    DOI YYYY-MM-DD count
 
 Counts aren't included if they're lower than 10.
+
+## Referrer code per day
+
+Shows use of various protocols, e.g. HTTPS, over time. File extension YYYY-MM-referrer-code. Lines of the format:
+
+    Code YYYY-MM-DD count
+
