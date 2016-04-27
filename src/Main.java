@@ -409,17 +409,255 @@ class Parser {
   }
 }
 
+// Map of strings to integers.
+// Not threasafe but doesn't have to be.
+class IdentityMap {
+  Integer counter = 0;
+  Map<String, Integer> entries = new HashMap<String, Integer>();
+  Map<Integer, String> inverseEntries = new HashMap<Integer, String>();
+
+  // Get mapping, creating ID if necessary.
+  Integer get(String input) {
+    Integer entry = this.entries.get(input);
+    if (entry != null) {
+      return entry;
+    }
+
+    counter++;
+    
+    this.entries.put(input, counter);
+    this.inverseEntries.put(counter, input);
+
+    // System.out.println("GET:" + input + " = " + counter);
+
+    return counter;
+  }
+
+  // Get inverse mapping, returning null if not found.
+  String getInverse(Integer input) {
+    return this.inverseEntries.get(input);
+  }
+
+  Integer count() {
+    return this.counter;
+  }
+
+  Integer size() {
+    return this.entries.size();
+  }
+
+  Integer inverseSize() {
+    return this.inverseEntries.size();
+  }
+}
+
+class Partitioner {
+  int numPartitions;
+
+  Partitioner(int numPartitions) {
+    this.numPartitions = numPartitions;
+  }
+
+  int partition(Object obj) {
+    return obj.hashCode() % numPartitions;
+  }
+}
+
+// A particular kind of aggregation.
+// This is a stateful strategy object with various callbacks. 
+// Not threadsafe.
+interface AggregatorStrategy {
+  // How many partitions required.
+  // Based on observed heuristics.
+  int numPartitions();
+
+  // Filename for this kind out output based on date.
+  String fileName(String date);
+
+  // Rather than have another layer of context objects and context object factories, allow reset of state between runs.
+  void reset();
+
+  // Which partition does this line belong to?
+  int partition(String[] line);
+
+  // Process the line.
+  void feed(String[] line);
+
+  // Write everything to the output file.
+  void write(Writer writer) throws IOException;
+}
+
+// Count DOI per day.
+class DOIAggregatorStrategy implements AggregatorStrategy {
+  // Ignore counts under this value.
+  static int CUTOFF = 10;
+  long inputCount = 0;
+
+  IdentityMap doiIds;
+
+  // Map of DOI ID, Date string => count.
+  HashMap<String, Integer> counter;
+  Partitioner partitioner;
+
+  DOIAggregatorStrategy() {
+    this.reset();
+  }
+
+  public int numPartitions() {
+    return 20;
+  }
+
+  public String fileName(String date) {
+    return String.format("%s-doi",  date);
+  }
+
+  public void reset() {
+    this.counter = new HashMap<String, Integer>();
+    this.doiIds = new IdentityMap();
+    this.partitioner = new Partitioner(this.numPartitions());
+    this.inputCount = 0;
+  }
+
+  public int partition(String[] line) {
+    return this.partitioner.partition(line[1]);
+  }
+
+  public void feed(String[] line) {
+    Integer doiId = this.doiIds.get(line[1]);
+    String key = line[0] + ":" + doiId;
+    this.counter.put(key, this.counter.getOrDefault(key, 0) + 1);
+
+    inputCount ++;
+    if (inputCount % 1000000 == 0) {
+      System.out.format("Processed %d lines. Frequency table size: %d. Identity map size %d (%d, %d) \n", this.inputCount, this.counter.size(), this.doiIds.count(), this.doiIds.size(), this.doiIds.inverseSize());
+    }
+  }
+
+  public void write(Writer writer) throws IOException {
+    for (Map.Entry<String, Integer> entry : this.counter.entrySet()) {
+      Integer count = entry.getValue();
+      if (count > CUTOFF) {
+        String[] dateDoi = entry.getKey().split(":");
+        String date = dateDoi[0];
+
+        String doi = this.doiIds.getInverse(Integer.parseInt(dateDoi[1]));
+
+        writer.write(date);
+        writer.write("\t");
+
+        writer.write(doi);
+        writer.write("\t");
+
+        writer.write(count.toString());
+        writer.write("\n");
+      }
+    }
+  }
+}
+
+class Aggregator {
+  File inputDirectory;
+  File outputDirectory;
+
+  Aggregator(File inputDirectory, File outputDirectory) {
+    this.inputDirectory = inputDirectory;
+    this.outputDirectory = outputDirectory;
+  }
+  
+  void run(AggregatorStrategy strategy) throws FileNotFoundException, UnsupportedEncodingException, IOException {
+    int numPartitions = strategy.numPartitions();
+    
+    // One file is a month, so counts are self-contained.
+    // One input file is exactly a month and corresponds to exactly one output file.
+    for (File inputFile : this.inputDirectory.listFiles()) {
+      // Filename will be the YYYY-MM.
+      String filename = inputFile.getName();
+      // Ignore .DS_Store and friends.
+      if (!filename.matches("\\d\\d\\d\\d-\\d\\d")) {
+        continue;
+      }
+
+      Writer output = new BufferedWriter(new FileWriter(new File(this.outputDirectory, strategy.fileName(filename))));
+      long totalLines = 0;
+
+      // Split the file into partitions.
+      for (int partitionNumber = 0; partitionNumber < numPartitions; partitionNumber++) {
+        System.out.format("%s: Partition %d / %d\n", filename, partitionNumber, numPartitions);
+
+        // New handle each time. Doesn't happen often.
+        BufferedReader input = new BufferedReader(new InputStreamReader(new FileInputStream(inputFile), "UTF-8"));
+
+        String lineInput;
+        while ((lineInput = input.readLine()) != null) {
+          totalLines++;
+
+          // Line is [date, doi, code, possibly-domain]. Might be 3 or 4 long.
+          String[] line = lineInput.split("\t");
+
+          // Reject except for this partition.
+          // Strategy knows how to partition.
+          if (strategy.partition(line) != partitionNumber) {
+            continue;
+          }
+
+          strategy.feed(line);
+
+          if (totalLines % 1000000 == 0) {
+            System.out.format("Processed lines: %d", totalLines);
+            
+            // This solves weird flushing issues.
+            System.out.println("");
+          }
+        }
+        
+        // We've finished this partition for this month, flush out the counts and start again.
+        strategy.write(output);
+        strategy.reset();
+
+        // Re-open input and seek to start for each partition pass.
+        input.close();
+      }
+
+      output.close();
+    }
+  }
+}
+
 
 public class Main {
-  public static void main(String[] argv) {
-    System.out.println(argv.length);
-    if (argv.length != 2) {
+  static void aggregate(String[] argv)  {
+    if (argv.length != 3) {
       System.err.println("Both input and output path must be supplied");
       System.exit(1);
     }
 
-    String inputPath = argv[0];
-    String outputPath = argv[1];
+    String inputPath = argv[1];
+    String outputPath = argv[2];
+
+    File input = new File(inputPath);
+    File output = new File(outputPath);
+
+    System.out.format("Process %s to %s\n", inputPath, outputPath);
+    Aggregator aggregator = new Aggregator(input, output);
+
+    AggregatorStrategy doiStrategy = new DOIAggregatorStrategy();
+
+    try {
+      aggregator.run(doiStrategy);
+    } catch (Exception e) {
+      System.err.println("Error:");
+      e.printStackTrace();
+    }
+  }
+
+  static void preprocess(String[] argv)  {
+    if (argv.length != 3) {
+      System.err.println("Both input and output path must be supplied");
+      System.exit(1);
+    }
+    
+    String inputPath = argv[1];
+    String outputPath = argv[2];
 
     System.out.println("Input directory: " + inputPath);
     System.out.println("Output directory: " + outputPath);
@@ -436,5 +674,20 @@ public class Main {
       System.err.println("Error:");
       e.printStackTrace();
     }
+  }
+
+  public static void main(String[] argv) {
+    String command = argv[0];
+
+    if (argv.length < 1) {
+      System.err.println("Provide at least a command.");
+      System.exit(1);
+    }
+
+    switch (argv[0]) {
+      case "pp": preprocess(argv); break;
+      case "aggregate": aggregate(argv); break;
+    }
+    
   }
 }

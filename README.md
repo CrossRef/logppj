@@ -12,6 +12,8 @@ Takes log files from the DOI resolver servers and converts them to something a b
  - discards IP address, command, status
  - anonymises logs by removal of IP address, precise day, precise referrer URL
 
+Also does some aggregation.
+
 Takes lines like:
 
     123.123.123.123 HTTP:HDL "Mon Apr 01 12:00:01 EDT 2013" 1 1 34ms 10.1016/j.ijoa.2009.01.009 "200:0.na/10.1016" "http://example.com"
@@ -24,7 +26,7 @@ For supervised R&D use!
 
 # To use
 
-Have a load of log files in gzip format, named like `access_log*.gz`. Have a directory to put processed log files into, empty or otherwise. Output files won't be overwritten. The processed files will be named after the month of the data in them, and multiple input log files for a given time period will be merged. Note that one input log file, nominally for one month, may not correspond exactly to that month. Thus small file one side or the other of the input log file may be created. If you want the processed log file for March, you will also need February and April for best results. **Existing processed log files will not be overwritten** so if you do have a small spilled file as a result of a previous run, you should delete it first.
+Have a load of log files in gzip format, named like `access_log*.gz`. Have a directory to put processed log files into, empty or otherwise. Output files won't be overwritten. The processed files will be named after the month of the data in them, and multiple input log files for a given time period will be merged. Note that one input log file, nominally for one month, may not correspond exactly to that month. Thus small file one side or the other of the input log file may be created, of the order of 1000 lines or 50kb. If you want the processed log file for March, you will also need February and April for best results. **Existing processed log files will not be overwritten** so if you do have a small spilled file as a result of a previous run, you should delete it first.
 
 Requires Java 1.8.
 
@@ -34,11 +36,11 @@ Compile:
 
 Run:
 
-    java -jar dist/Main.jar /Users/jwass/data/logs /Users/jwass/data/logs-processed
+    java -jar dist/Main.jar pp /Users/jwass/data/logs /Users/jwass/data/logs-processed
 
 When developing:
 
-    ant run -Darg0=/Users/jwass/data/logs -Darg1=/Users/jwass/data/logs-processed
+    ant run -Darg1=pp -Darg1=/Users/jwass/data/logs -Darg1=/Users/jwass/data/logs-processed
 
 Look at the output, it may contain something you're interested in. A log message is shown every million lines processed. Unparsable referrers are logged, which you may want to adjust the code to process.
 
@@ -65,11 +67,16 @@ Some "W" types may be accompanied by a special domain:
 
 Over the first two months of 2016, :
 
+Input
  - 16 GB input in compressed log files
- - corresponding to XX uncompressed characters, or XX lines
- - runs in XX minutes on my laptop (Macbook Pro 2015, 3.1GHz, 16GB RAM)
- - produces XX bytes of uncompressed output
- - XX failures
+ - 611292202 lines = 600 million
+ - 75902538942 characters ~= 75 GB
+
+Process on my laptop (Macbook Pro 2015, 3.1GHz, 16GB RAM)
+ - runs in 126 minutes = 20 hours
+ - produces 22 GB of uncompressed output
+ - produces 66 MB of spill-over into the next month
+ - 71376007 failed lines = 11%
 
 # Issues
 
@@ -78,6 +85,10 @@ Not all lines parse smoothly. In first 2 months of 2016 XX failed to parse, whic
 The time format doesn't seem to conform to any international standard. Timezones names are ambigious and mappings are therefore hardcoded. Different standards are used in different files.
 
 Unrecognised referrers are logged for possible adjustment of handling in code. Most are no-hopers. All other errors deliberately cause a crash.
+
+Lines show up like this, with just the prefix with no clear explanation. From `access_log_201601_ec2`.
+
+    123.65.221.28 HTTP:HDL "2016-01-08 14:25:28.842Z" 1 100 187ms 10.1186/ "" "http://dx.doi.org/10.1186/"
 
 # Further reading
 
@@ -97,4 +108,20 @@ Examples of failures. These happen less than 10 times each so there's no point w
     %C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5IDMCCHelperComponent5.prototype.GetLinks%20(jar:file:///C:/Program%20Files%20(x86)/Internet%20Download%20Manager/idmmzcc2.xpi!/components/idmhelper5.js:367)
 
 
-    
+# Aggregation
+
+Running with the `aggregate` command produces the following aggregations:
+
+ - count per DOI per day
+
+    time ant run -Darg0=aggregate -Darg1=/Users/jwass/data/logs-2016-processed -Darg2=/Users/jwass/data/logs-2016-aggregated
+
+Output is an unsorted file of entries.
+
+## DOI per day
+
+File extension YYYY-MM-doi. Lines of the format:
+
+    YYYY-MM-DD DOI count
+
+Counts aren't included if they're lower than 10.
