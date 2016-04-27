@@ -5,19 +5,19 @@ import java.io.Writer;
 import java.util.HashMap;
 import java.util.Map;
 
-// Count DOI per day.
-class DOIAggregatorStrategy implements AggregatorStrategy {
+// Count referring domain name per day.
+class DomainAggregatorStrategy implements AggregatorStrategy {
   // Ignore counts under this value.
   static int CUTOFF = 10;
   long inputCount = 0;
 
-  IdentityMap doiIds;
+  IdentityMap domainIds;
 
-  // Map of DOI ID, Date string => count.
+  // Map of Domain ID, Date string => count.
   HashMap<String, Integer> counter;
   Partitioner partitioner;
 
-  DOIAggregatorStrategy() {
+  DomainAggregatorStrategy() {
     this.reset();
   }
 
@@ -26,29 +26,38 @@ class DOIAggregatorStrategy implements AggregatorStrategy {
   }
 
   public String fileName(String date) {
-    return String.format("%s-doi",  date);
+    return String.format("%s-domain",  date);
   }
 
   public void reset() {
     this.counter = new HashMap<String, Integer>();
-    this.doiIds = new IdentityMap();
+    this.domainIds = new IdentityMap();
     this.partitioner = new Partitioner(this.numPartitions());
     this.inputCount = 0;
   }
 
   public int partition(String[] line) {
-    // Date is evenly distributed. 
+    // Date is evenly distributed.
     return this.partitioner.partition(line[0]);
-  }
+  } 
 
+  // line is [date, doi, code, possibly-domain]
   public void feed(String[] line) {
-    Integer doiId = this.doiIds.get(line[1]);
-    String key = line[0] + ":" + doiId;
+    String domain = "unknown.special";
+
+    // Line can be 3 or 4 long, depending if a domain was supplied.
+    // Not perfect, TODO improve.
+    if (line.length == 4) {
+      domain = line[3];
+    }
+
+    Integer domainId = this.domainIds.get(domain);
+    String key = line[0] + ":" + domainId;
     this.counter.put(key, this.counter.getOrDefault(key, 0) + 1);
 
     inputCount ++;
     if (inputCount % 1000000 == 0) {
-      System.out.format("Processed %d lines. Frequency table size: %d. Identity map size %d \n", this.inputCount, this.counter.size(), this.doiIds.count());
+      System.out.format("Processed %d lines. Frequency table size: %d. Identity map size %d \n", this.inputCount, this.counter.size(), this.domainIds.count());
     }
   }
 
@@ -56,12 +65,12 @@ class DOIAggregatorStrategy implements AggregatorStrategy {
     for (Map.Entry<String, Integer> entry : this.counter.entrySet()) {
       Integer count = entry.getValue();
       if (count > CUTOFF) {
-        String[] dateDoi = entry.getKey().split(":");
-        String date = dateDoi[0];
+        String[] dateDomain = entry.getKey().split(":");
+        String date = dateDomain[0];
 
-        String doi = this.doiIds.getInverse(Integer.parseInt(dateDoi[1]));
+        String domain = this.domainIds.getInverse(Integer.parseInt(dateDomain[1]));
 
-        writer.write(doi);
+        writer.write(domain);
         writer.write("\t");
 
         writer.write(date);

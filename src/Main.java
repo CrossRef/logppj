@@ -19,7 +19,8 @@ public class Main {
     Aggregator aggregator = new Aggregator(input, output);
 
     // AggregatorStrategy strategy = new DOIAggregatorStrategy();
-    AggregatorStrategy strategy = new CodeAggregatorStrategy();
+    // AggregatorStrategy strategy = new CodeAggregatorStrategy();
+    AggregatorStrategy strategy = new DomainAggregatorStrategy();
 
     try {
       aggregator.run(strategy);
