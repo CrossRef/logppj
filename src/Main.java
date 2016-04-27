@@ -18,12 +18,17 @@ public class Main {
     System.out.format("Process %s to %s\n", inputPath, outputPath);
     Aggregator aggregator = new Aggregator(input, output);
 
-    // AggregatorStrategy strategy = new DOIAggregatorStrategy();
-    // AggregatorStrategy strategy = new CodeAggregatorStrategy();
-    AggregatorStrategy strategy = new DomainAggregatorStrategy();
+    AggregatorStrategy[] strategies = new AggregatorStrategy[] {
+      new DOIAggregatorStrategy(),
+      new CodeAggregatorStrategy(),
+      new DomainAggregatorStrategy()};
 
     try {
-      aggregator.run(strategy);
+      for (AggregatorStrategy strategy: strategies) {
+        System.out.format("Aggregate with strategy: %s \n", strategy.toString());
+        aggregator.run(strategy);
+        System.out.format("Finished aggregate with strategy: %s \n", strategy.toString());
+      }
     } catch (Exception e) {
       System.err.println("Error:");
       e.printStackTrace();

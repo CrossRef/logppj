@@ -21,6 +21,11 @@ class DomainAggregatorStrategy implements AggregatorStrategy {
     this.reset();
   }
 
+  public String toString() {
+    return String.format("DomainAggregatorStrategy, %d partitions", this.numPartitions());
+  }
+
+
   public int numPartitions() {
     return 20;
   }

@@ -21,6 +21,11 @@ class DOIAggregatorStrategy implements AggregatorStrategy {
     this.reset();
   }
 
+  public String toString() {
+    return String.format("DOIAggregatorStrategy, %d partitions", this.numPartitions());
+  }
+
+
   public int numPartitions() {
     return 20;
   }

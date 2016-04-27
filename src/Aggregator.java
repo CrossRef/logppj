@@ -55,7 +55,7 @@ class Aggregator {
 
       // Split the file into partitions.
       for (int partitionNumber = 0; partitionNumber < numPartitions; partitionNumber++) {
-        System.out.format("%s: Partition %d / %d\n", filename, partitionNumber, numPartitions);
+        System.out.format("%s: Partition %d / %d\n", filename, partitionNumber, numPartitions-1);
 
         // New handle each time. Doesn't happen often.
         BufferedReader input = new BufferedReader(new InputStreamReader(new FileInputStream(inputFile), "UTF-8"));

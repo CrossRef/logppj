@@ -18,6 +18,10 @@ class CodeAggregatorStrategy implements AggregatorStrategy {
     this.reset();
   }
 
+  public String toString() {
+    return String.format("CodeAggregatorStrategy, %d partitions", this.numPartitions());
+  }
+
   public int numPartitions() {
     return 1;
   }
