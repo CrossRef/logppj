@@ -8,6 +8,10 @@ class Partitioner {
   }
 
   int partition(Object obj) {
-    return obj.hashCode() % numPartitions;
+    int hashCode = obj.hashCode();
+    if (hashCode < 0) {
+      hashCode *= -1;
+    }
+    return hashCode % numPartitions;
   }
 }
