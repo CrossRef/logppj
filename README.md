@@ -60,8 +60,9 @@ The referrer is sent by some browsers. It is the URL that the user was on when t
 
 Some "W" types may be accompanied by a special domain:
 
- - `readcube.special` for Readcube app
- - `file.special` for a locally saved file.
+ - `readcube.special` for Readcube app. Code: `W`.
+ - `local.special` for a locally saved file. Code: `L`.
+ - `unknown.special` for not supplied (because every line needs some kind of referrer). Code: `U`.
 
 # Stats
 

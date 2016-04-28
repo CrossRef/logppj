@@ -7,9 +7,14 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileWriter;
 import java.io.InputStream;
+import java.io.FileOutputStream;
 import java.io.InputStreamReader;
+import java.io.OutputStreamWriter;
+import java.io.OutputStream;
 import java.io.IOException;
 import java.io.Reader;
+import java.util.zip.GZIPOutputStream;
+import java.io.BufferedWriter;
 import java.io.UnsupportedEncodingException;
 import java.io.Writer;
 import java.net.MalformedURLException;
@@ -24,7 +29,13 @@ import java.util.zip.GZIPInputStream;
 // A parser for log files.
 // Stateful, because it holds several file handles for multiplexing output.
 class Parser {
-  private Pattern re = Pattern.compile("^([\\d.]+) ([a-zA-Z:]+) (\"[^\"]*\") (\\d+) (\\d+) ([^\"]{1,2}|[^\"][^ ]*[^\"]|\"[^\"]*\") ([^\"]{1,2}|[^\"][^ ]*[^\"]|\"[^\"]*\") ([^\"]{1,2}|[^\"][^ ]*[^\"]|\"[^\"]*\") ([^\"]{1,2}|[^\"][^ ]*[^\"]|\"[^\"]*\")$");
+  // To indicate that it wasn't supplied.
+  static String UNKNOWN_DOMAIN = "unknown.special";
+
+  // To indicate that it was a local file.
+  static String LOCAL_DOMAIN = "local.special";
+
+  private LineParser lineParser = new LineParser();
 
   // Pattern to handle OpenURL requests (for error handling).
   private Pattern openurlRe = Pattern.compile("^([\\d.]+) HTTP:OpenURL");
@@ -59,7 +70,8 @@ class Parser {
   // Always return, sometimes empty string for domain.
   String[] parseReferrer(String referrer) {
     String code = "N";
-    String host = "";
+    // If there isn't one, use a placeholder.
+    String host = UNKNOWN_DOMAIN;
 
     // Most common is empty string.
     if (referrer.length() > 1) {
@@ -95,7 +107,7 @@ class Parser {
             break;
           case "file":
             code = "L";
-            host = "file.special";
+            host = LOCAL_DOMAIN;
             break;
           default:
             // We got a valid URL but don't know what the protocol is.
@@ -103,24 +115,25 @@ class Parser {
             System.out.println("Unrecognised referrer protocol: " + url.getProtocol());
             System.out.println(referrer);
             code = "O";
-            host = "";
+            host = UNKNOWN_DOMAIN;
         }
       } catch (MalformedURLException exception) {
         // It's not a valid URL but it could be a valid domain without a scheme, e.g. "ask.com". In this case, try to build a URL with it.
         // But first some well known exceptions (which might otherwise squash into a URL if we put "http://" in front).
         if (referrer.equals("about:blank")) {
             code = "N";
-            host = "";
+            host = LOCAL_DOMAIN;
           } else if (referrer.startsWith("app:/ReadCube.swf")) {
             code = "W";
             host = "readcube.special";
           } else if (referrer.matches("^[A-Z]:\\\\.*$")) {
             // Some Windows drive. 
             code = "L"; 
+            host = LOCAL_DOMAIN;
           } else if (referrer.startsWith("mhtml:")) {
             // MIME HTML, Internet Explorer saved page. Count as local file.
             code = "L";
-            host = "file.special";
+            host = LOCAL_DOMAIN;
           } else if (referrer.contains("domain=dlvr.it")) {
             // e.g. "dlvrId=bcf15c60aa2d9e4f737603e82da64730; expires=Sat, 16-Feb-2013 21:24:04 GMT; path=/; domain=dlvr.it"
             code = "U";
@@ -132,7 +145,7 @@ class Parser {
           } else if (referrer.startsWith("javascript:")) {
             // e.g. "javascript:expandCollapse('infoBlockID', true);"
             code = "N";
-            host = "";
+            host = UNKNOWN_DOMAIN;
           } else {
             try {
               // If it works, use that.
@@ -158,13 +171,21 @@ class Parser {
     if (writer != null) {
       return writer;
     } else {
-      File f = new File(this.outputDirectory, yearMonth);
+      File f = new File(this.outputDirectory, yearMonth + ".gz");
 
       if (f.exists()) {
         System.err.format("WARNING: Not overwriting file: %s\n", f.getPath());
         writer = nullWriter;
       } else {
-        writer = new BufferedWriter(new FileWriter(f));
+        // writer = new BufferedWriter(new FileWriter(f));
+
+
+        OutputStream fileStream = new FileOutputStream(f);
+        OutputStream gzipStream = new GZIPOutputStream(fileStream);
+        Writer encoder = new OutputStreamWriter(gzipStream, "UTF-8");
+        writer = new BufferedWriter(encoder);
+
+
       }
 
       this.monthFiles.put(yearMonth, writer);
@@ -215,29 +236,27 @@ class Parser {
         // Newlines count for something.
         totalChars += line.length() + 1;
 
-        Matcher matcher = re.matcher(line);
-        
+        String[] match = this.lineParser.parse(line);
+
         // It's possible that lines fail to parse.
         //  - OpenURL lines are missing fields so skip them.
         //  - Some DOIs have spaces in them and it's impossible to parse.
         //  - Sometimes huge fragments of HTML are passed in.
         //  - Sometimes weird bytes creep in. Call it solar radiation.
         // The failure rate is roughly 0.05%
-        if (!matcher.matches()) {
+        if (match == null) {
           if (openurlRe.matcher(line).find()) {
             openUrlIgnores ++;
           } else {
             failedLines ++;
           }
         } else {
-          // We got a cleanly matched line.
-          String dateStr = matcher.group(3);
-
-          // Strip quotes.
-          dateStr = dateStr.substring(1, dateStr.length() - 1);
-          String[] parsedDate = this.dateParser.parseDate(dateStr);
+          String dateString = match[0];
+          String doi = match[1];
+          String referrerString = match[2];
 
           // Year-month for log file name, year-month-day for log entry.
+          String[] parsedDate = this.dateParser.parseDate(dateString);
           String yearMonth = parsedDate[0];
           String yearMonthDay = parsedDate[1];
           
@@ -263,14 +282,9 @@ class Parser {
             continue;
           }
 
-          String doi = matcher.group(7);
-          String status = matcher.group(8);
-          String referrerStr = matcher.group(9);
-          referrerStr = referrerStr.substring(1, referrerStr.length() - 1);
-
-          String[] parsedReferrer = parseReferrer(referrerStr);
+          String[] parsedReferrer = parseReferrer(referrerString);
           String referrerCode = parsedReferrer[0];
-          String referrerDomain = parsedReferrer[1];
+          String  referrerDomain = parsedReferrer[1];
 
           // «YYYY-MM-DD in UTC» «DOI» «code» «referring domain»
           outputFile.write(yearMonthDay);
@@ -287,7 +301,7 @@ class Parser {
 
         // Every million lines. 
         if (totalLines % 1000000 == 0) {
-          System.out.format("Processed lines: %d, characters: %d, failed: %d, OpenURL: %d", totalLines, totalChars, failedLines, openUrlIgnores);
+          System.out.format("Processed lines: %d, characters: %d, failed: %d, OpenURL: %d\n", totalLines, totalChars, failedLines, openUrlIgnores);
           
           // This solves weird flushing issues.
           System.out.println("");
@@ -297,13 +311,14 @@ class Parser {
       bufferedReader.close();
 
       totalFiles++;
+      System.out.format("Finished file! Processed lines: %d, characters: %d, failed: %d, OpenURL: %d\n", totalLines, totalChars, failedLines, openUrlIgnores);
     }
 
     for (Writer w: this.monthFiles.values()) {
       w.close();
     }
 
-    System.out.format("Finished! Processed lines: %d, characters: %d, failed: %d, OpenURL: %d", totalLines, totalChars, failedLines, openUrlIgnores);
+    System.out.format("Finished all files! Processed lines: %d, characters: %d, failed: %d, OpenURL: %d\n", totalLines, totalChars, failedLines, openUrlIgnores);
     System.out.println("");
   }
 }

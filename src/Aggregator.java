@@ -62,8 +62,6 @@ class Aggregator {
 
         String lineInput;
         while ((lineInput = input.readLine()) != null) {
-          totalLines++;
-
           // Line is [date, doi, code, possibly-domain]. Might be 3 or 4 long.
           String[] line = lineInput.split("\t");
 
@@ -73,16 +71,21 @@ class Aggregator {
             continue;
           }
 
+          totalLines++;
+
+
           strategy.feed(line);
 
           if (totalLines % 1000000 == 0) {
-            System.out.format("Processed lines: %d", totalLines);
+            System.out.format("Processed lines: %d\n", totalLines);
             
             // This solves weird flushing issues.
             System.out.println("");
           }
         }
         
+        System.out.format("Processed lines: %d\n", totalLines);
+
         // We've finished this partition for this month, flush out the counts and start again.
         strategy.write(output);
         strategy.reset();
