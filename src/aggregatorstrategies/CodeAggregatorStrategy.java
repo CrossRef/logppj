@@ -16,7 +16,7 @@ public class CodeAggregatorStrategy implements AggregatorStrategy {
   HashMap<String, Integer> counter;
   Partitioner partitioner;
 
-  CodeAggregatorStrategy() {
+  public CodeAggregatorStrategy() {
     this.reset();
   }
 

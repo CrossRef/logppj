@@ -5,6 +5,7 @@ import java.util.regex.Pattern;
 import java.util.Arrays;
 
 // Parse a line into the useful strings that we want, an array of [date doi referrer].
+// Date strings are interned, as there's a very small set of possible strings but there are lots of them. 
 // Can deal with a number of different line formats.
 // Stateful because it caches the most recent working parser.
 public class LineParser {
@@ -59,12 +60,12 @@ public class LineParser {
     }
 
     if (pattern == this.re1 || pattern == this.re2) {
-      String date = matcher.group(1);
+      String date = matcher.group(1).intern();
       String doi = matcher.group(2);
       String referrer = matcher.group(3);
       return new String[] {date, doi, referrer};
     } else if (pattern == this.re3) {
-      String date = matcher.group(1);
+      String date = matcher.group(1).intern();
       String doi = matcher.group(2);
       String referrer = "unknown.special";
       return new String[] {date, doi, referrer};

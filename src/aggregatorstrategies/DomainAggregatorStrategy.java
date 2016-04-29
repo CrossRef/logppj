@@ -8,6 +8,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 // Count referring domain name per day.
+// Output as unordered «domain» «date» «count».
 public class DomainAggregatorStrategy implements AggregatorStrategy {
   // Ignore counts under this value.
   static int CUTOFF = 10;
@@ -19,7 +20,7 @@ public class DomainAggregatorStrategy implements AggregatorStrategy {
   HashMap<String, Integer> counter;
   Partitioner partitioner;
 
-  DomainAggregatorStrategy() {
+  public DomainAggregatorStrategy() {
     this.reset();
   }
 

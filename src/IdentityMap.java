@@ -5,6 +5,7 @@ import java.util.Map;
 
 // Map of strings to integers.
 // Not threasafe but doesn't have to be.
+// Preferable to String.intern for some cases because of explicit lifetime control.
 public class IdentityMap {
   Integer counter = 0;
   Map<String, Integer> entries = new HashMap<String, Integer>();

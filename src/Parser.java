@@ -161,6 +161,14 @@ public  class Parser {
       }
     }
 
+    // Finally.
+    // Referrers like: "http:///reload/10.1007/BF02821190" and "http:///" constitute valid java.net.URLs,
+    // giving empty domains. Ensure that under no circumstances we return an empty string.
+    if (host.length() == 0) {
+      host = UNKNOWN_DOMAIN;
+      code = "U";
+    }
+
     return new String[] {code, host};
   }
 

@@ -19,7 +19,7 @@ public class DOIAggregatorStrategy implements AggregatorStrategy {
   HashMap<String, Integer> counter;
   Partitioner partitioner;
 
-  DOIAggregatorStrategy() {
+  public DOIAggregatorStrategy() {
     this.reset();
   }
 

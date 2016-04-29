@@ -52,6 +52,9 @@ public class Aggregator {
         continue;
       }
 
+      // Drop the extension.
+      filename = filename.substring(0, 7);
+
       Writer output = new BufferedWriter(new FileWriter(new File(this.outputDirectory, strategy.fileName(filename))));
       long totalLines = 0;
 
@@ -66,6 +69,12 @@ public class Aggregator {
         while ((lineInput = input.readLine()) != null) {
           // Line is [date, doi, code, domain].
           String[] line = lineInput.split("\t");
+
+          // In transition between new and old format, some unknown domains are represented as empty strings.
+          // TODO remove when all logs re-parsed.
+          if (line.length != 4) {
+            line = new String[] {line[0], line[1], "U", "unknown.special"};
+          }
 
           // Reject except for this partition.
           // Strategy knows how to partition.
@@ -90,6 +99,9 @@ public class Aggregator {
         // We've finished this partition for this month, flush out the counts and start again.
         strategy.write(output);
         strategy.reset();
+
+        // So we can snoop on what's being written.
+        output.flush();
 
         // Re-open input and seek to start for each partition pass.
         input.close();
