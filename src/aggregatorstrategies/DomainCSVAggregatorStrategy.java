@@ -10,20 +10,20 @@ import java.util.Arrays;
 
 // Count referring domain name per day.
 // Output as:
-// DOMAIN
 // «domain»
 // «date» «count»
 // «date» «count»
 // «date» «count»
 // ...
-// DOMAIN
-// etc
+// «blank line»
+// «repeat»
 public class DomainCSVAggregatorStrategy implements AggregatorStrategy {
   long inputCount = 0;
 
   // Map of Domain string => Date string => count.
   // Date strings as receive them are interned because there is a very small set of possible dates but my goodness there are a lot of instances.
   HashMap<String, Map<String, Integer>> counter;
+
   Partitioner partitioner;
 
   public DomainCSVAggregatorStrategy() {
@@ -60,12 +60,12 @@ public class DomainCSVAggregatorStrategy implements AggregatorStrategy {
     String domain = line[3];
     String date = line[0];
 
+
     Map<String, Integer> dateCounter = this.counter.get(domain);
     if (dateCounter == null) {
       dateCounter = new HashMap<String, Integer>();
       this.counter.put(domain, dateCounter);
     }
-
     dateCounter.put(date, dateCounter.getOrDefault(date, 0) + 1);
 
     inputCount ++;
@@ -76,7 +76,6 @@ public class DomainCSVAggregatorStrategy implements AggregatorStrategy {
 
   public void write(Writer writer) throws IOException {
     for (Map.Entry<String, Map<String, Integer>> domainEntry : this.counter.entrySet()) {
-      writer.write("DOMAIN\n");
       writer.write(domainEntry.getKey());
       writer.write("\n");
 
@@ -86,6 +85,8 @@ public class DomainCSVAggregatorStrategy implements AggregatorStrategy {
         writer.write(dateEntry.getValue().toString());
         writer.write("\n");
       }
+
+      writer.write("\n\n");
     }
   }
 }
