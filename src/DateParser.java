@@ -7,7 +7,7 @@ import java.time.format.DateTimeFormatter;
 
 
 // A date parser. Stateful, as it uses the appropriate format and remembers what it used last time.
-class DateParser {
+public class DateParser {
   // Different standards in use at different times. We have a pallate of formats available to us.
 
   // This one, as used in 2013 files, is compared by reference.
@@ -29,7 +29,7 @@ class DateParser {
   private DateTimeFormatter currentDateFormatter = this.twentyThirteenFormatter;
 
   // Parse date into array of ["YYYY-MM", YYYY-MM-DD"] in UTC.
-  String[] parseDate(String dateStr) {
+  public String[] parseDate(String dateStr) {
     // First try the current one, assuming it will work.
     try {
       return this.parseDateWithFormatter(dateStr, this.currentDateFormatter);
@@ -56,7 +56,7 @@ class DateParser {
     }
   }
 
-  String[] parseDateWithFormatter(String dateStr, DateTimeFormatter formatter) {
+  private String[] parseDateWithFormatter(String dateStr, DateTimeFormatter formatter) {
     // System.out.format("Try \"%s\" with %s\n", dateStr, formatter.toString());
 
     // 2013 formatter has non-standard timezones. Turn these into well-understood offsets.

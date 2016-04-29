@@ -30,16 +30,16 @@ import java.util.zip.GZIPInputStream;
 import java.io.FileInputStream;
 
 
-class Aggregator {
+public class Aggregator {
   File inputDirectory;
   File outputDirectory;
 
-  Aggregator(File inputDirectory, File outputDirectory) {
+  public Aggregator(File inputDirectory, File outputDirectory) {
     this.inputDirectory = inputDirectory;
     this.outputDirectory = outputDirectory;
   }
   
-  void run(AggregatorStrategy strategy) throws FileNotFoundException, UnsupportedEncodingException, IOException {
+  public void run(AggregatorStrategy strategy) throws FileNotFoundException, UnsupportedEncodingException, IOException {
     int numPartitions = strategy.numPartitions();
     
     // One file is a month, so counts are self-contained.

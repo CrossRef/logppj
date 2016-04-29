@@ -1,6 +1,7 @@
 package logpp;
 
 import java.io.File;
+import logpp.aggregatorstrategies.*;
 
 public class Main {
   static void aggregate(String[] argv)  {

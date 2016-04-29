@@ -28,7 +28,7 @@ import java.util.zip.GZIPInputStream;
 
 // A parser for log files.
 // Stateful, because it holds several file handles for multiplexing output.
-class Parser {
+public  class Parser {
   // To indicate that it wasn't supplied.
   static String UNKNOWN_DOMAIN = "unknown.special";
 
@@ -53,7 +53,7 @@ class Parser {
   // Reference comparison against this.
   private Writer nullWriter = new NullOutputStream();
 
-  Parser(File inputDirectory, File outputDirectory) {
+  public Parser(File inputDirectory, File outputDirectory) {
     this.inputDirectory = inputDirectory;
     this.outputDirectory = outputDirectory;
   }
@@ -68,7 +68,7 @@ class Parser {
   // "N" for no information.
   // "W" for weird (e.g. readcube)
   // Always return, sometimes empty string for domain.
-  String[] parseReferrer(String referrer) {
+  private String[] parseReferrer(String referrer) {
     String code = "N";
     // If there isn't one, use a placeholder.
     String host = UNKNOWN_DOMAIN;
@@ -166,7 +166,7 @@ class Parser {
 
   // Return the file handle.
   // Create the file if necessary, but don't over-write.
-  Writer getOutputFile(String yearMonth) throws IOException {
+  private Writer getOutputFile(String yearMonth) throws IOException {
     Writer writer = this.monthFiles.get(yearMonth);
     if (writer != null) {
       return writer;
@@ -194,7 +194,7 @@ class Parser {
     }
   }
 
-  void run() throws FileNotFoundException, IOException, UnsupportedEncodingException, ParseException {
+  public void run() throws FileNotFoundException, IOException, UnsupportedEncodingException, ParseException {
     System.out.println("Run");
 
     // Total successful lines.

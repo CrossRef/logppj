@@ -5,7 +5,7 @@ import java.io.Writer;
 
 // An output stream that does nothing.
 // Used as a marker for 'don't write anything' so isn't ever actually written to anyway.
-class NullOutputStream extends Writer {
+public  class NullOutputStream extends Writer {
   @Override
   public void write(int b) throws IOException {
   }

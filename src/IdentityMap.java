@@ -5,13 +5,13 @@ import java.util.Map;
 
 // Map of strings to integers.
 // Not threasafe but doesn't have to be.
-class IdentityMap {
+public class IdentityMap {
   Integer counter = 0;
   Map<String, Integer> entries = new HashMap<String, Integer>();
   Map<Integer, String> inverseEntries = new HashMap<Integer, String>();
 
   // Get mapping, creating ID if necessary.
-  Integer get(String input) {
+  public Integer get(String input) {
     Integer entry = this.entries.get(input);
     if (entry != null) {
       return entry;
@@ -28,11 +28,11 @@ class IdentityMap {
   }
 
   // Get inverse mapping, returning null if not found.
-  String getInverse(Integer input) {
+  public String getInverse(Integer input) {
     return this.inverseEntries.get(input);
   }
 
-  Integer count() {
+  public Integer count() {
     return this.counter;
   }
 }

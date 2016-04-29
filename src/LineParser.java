@@ -7,7 +7,7 @@ import java.util.Arrays;
 // Parse a line into the useful strings that we want, an array of [date doi referrer].
 // Can deal with a number of different line formats.
 // Stateful because it caches the most recent working parser.
-class LineParser {
+public class LineParser {
   // Nearly all log lines match chis.
   // 101.226.33.216 HTTP:HDL "2016-01-05 03:55:23.962-0500" 1 1 23ms 10.1002/aic.14628 "200:0.na/10.1002" "http://www.sogou.com/"
   private Pattern re1 = Pattern.compile("^[\\d.]+ [a-zA-Z:]+ \"([0-9Z:\\-+ .]+)\" \\d+ \\d+ [a-zA-Z0-9]+ ([^ ]+) \"[^\"]+\" \"([^\"]*)\"$");
@@ -26,7 +26,7 @@ class LineParser {
   private Pattern pattern = re1;
 
   // Parse string into [dateString, DOI, referrer domain]
-  String[] parse(String line) {
+  public String[] parse(String line) {
     // Try the last one that worked.
     String[] result = this.parseWith(line, this.pattern);
     
@@ -51,7 +51,7 @@ class LineParser {
     return null;
   }
 
-  String[] parseWith(String line, Pattern pattern) {
+  private String[] parseWith(String line, Pattern pattern) {
     Matcher matcher = pattern.matcher(line);
 
     if (!matcher.matches()) {

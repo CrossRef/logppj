@@ -1,4 +1,6 @@
-package logpp;
+package logpp.aggregatorstrategies;
+
+import logpp.*;
 
 import java.io.IOException;
 import java.io.Writer;
@@ -6,7 +8,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 // Count referrer type codes (e.g. https vs https) per day.
-class CodeAggregatorStrategy implements AggregatorStrategy {
+public class CodeAggregatorStrategy implements AggregatorStrategy {
   // Ignore counts under this value.
   long inputCount = 0;
 

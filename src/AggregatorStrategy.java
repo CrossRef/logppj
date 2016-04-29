@@ -6,7 +6,7 @@ import java.io.Writer;
 // A particular kind of aggregation.
 // This is a stateful strategy object with various callbacks. 
 // Not threadsafe.
-interface AggregatorStrategy {
+public interface AggregatorStrategy {
   // How many partitions required.
   // Based on observed heuristics.
   int numPartitions();
