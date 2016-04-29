@@ -27,7 +27,7 @@ class DOIAggregatorStrategy implements AggregatorStrategy {
 
 
   public int numPartitions() {
-    return 20;
+    return 100;
   }
 
   public String fileName(String date) {
@@ -42,12 +42,14 @@ class DOIAggregatorStrategy implements AggregatorStrategy {
   }
 
   public int partition(String[] line) {
-    // Date is evenly distributed. 
-    return this.partitioner.partition(line[0]);
+    // Date is evenly distributed but there aren't many. DOI is more suitable.
+    return this.partitioner.partition(line[1]);
   }
 
+  // Line is [date, doi, code, domain]
   public void feed(String[] line) {
     Integer doiId = this.doiIds.get(line[1]);
+    // date:doi
     String key = line[0] + ":" + doiId;
     this.counter.put(key, this.counter.getOrDefault(key, 0) + 1);
 

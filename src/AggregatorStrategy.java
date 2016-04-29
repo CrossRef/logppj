@@ -21,7 +21,7 @@ interface AggregatorStrategy {
   int partition(String[] line);
 
   // Process the line.
-  // Line is [date, doi, code, possibly-domain]. Might be 3 or 4 long.
+  // Line is [date, doi, code, domain].
   void feed(String[] line);
 
   // Write everything to the output file.

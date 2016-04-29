@@ -37,10 +37,11 @@ class CodeAggregatorStrategy implements AggregatorStrategy {
   }
 
   public int partition(String[] line) {
-    // No need to partition, the set codes is tiny.
+    // No need to partition, the set of codes is tiny.
     return 0;
   }
 
+  // Line is [date, doi, code, domain].
   public void feed(String[] line) {
     // date:code
     String key = line[0] + ":" + line[2];

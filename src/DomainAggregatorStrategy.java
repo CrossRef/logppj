@@ -42,22 +42,19 @@ class DomainAggregatorStrategy implements AggregatorStrategy {
   }
 
   public int partition(String[] line) {
-    // Date is evenly distributed.
-    return this.partitioner.partition(line[0]);
+    // Date is evenly distributed but there aren't many. 
+    // Use domain.
+
+    
+    return this.partitioner.partition(line[1]);
   } 
 
-  // line is [date, doi, code, possibly-domain]
+  // line is [date, doi, code, domain]
   public void feed(String[] line) {
-    String domain = "unknown.special";
-
-    // Line can be 3 or 4 long, depending if a domain was supplied.
-    // Not perfect, TODO improve.
-    if (line.length == 4) {
-      domain = line[3];
-    }
-
-    Integer domainId = this.domainIds.get(domain);
+    Integer domainId = this.domainIds.get(line[3]);
+    // date:domainId
     String key = line[0] + ":" + domainId;
+
     this.counter.put(key, this.counter.getOrDefault(key, 0) + 1);
 
     inputCount ++;
@@ -68,6 +65,7 @@ class DomainAggregatorStrategy implements AggregatorStrategy {
 
   public void write(Writer writer) throws IOException {
     for (Map.Entry<String, Integer> entry : this.counter.entrySet()) {
+
       Integer count = entry.getValue();
       if (count > CUTOFF) {
         String[] dateDomain = entry.getKey().split(":");

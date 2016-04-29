@@ -27,6 +27,8 @@ import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.zip.GZIPInputStream;
+import java.io.FileInputStream;
+
 
 class Aggregator {
   File inputDirectory;
@@ -43,10 +45,10 @@ class Aggregator {
     // One file is a month, so counts are self-contained.
     // One input file is exactly a month and corresponds to exactly one output file.
     for (File inputFile : this.inputDirectory.listFiles()) {
-      // Filename will be the YYYY-MM.
+      // Filename will be the YYYY-MM.gz .
       String filename = inputFile.getName();
       // Ignore .DS_Store and friends.
-      if (!filename.matches("\\d\\d\\d\\d-\\d\\d")) {
+      if (!filename.matches("\\d\\d\\d\\d-\\d\\d\\.gz")) {
         continue;
       }
 
@@ -58,11 +60,11 @@ class Aggregator {
         System.out.format("%s: Partition %d / %d\n", filename, partitionNumber, numPartitions-1);
 
         // New handle each time. Doesn't happen often.
-        BufferedReader input = new BufferedReader(new InputStreamReader(new FileInputStream(inputFile), "UTF-8"));
+        BufferedReader input = new BufferedReader(new InputStreamReader(new GZIPInputStream(new FileInputStream(inputFile)), "UTF-8"));
 
         String lineInput;
         while ((lineInput = input.readLine()) != null) {
-          // Line is [date, doi, code, possibly-domain]. Might be 3 or 4 long.
+          // Line is [date, doi, code, domain].
           String[] line = lineInput.split("\t");
 
           // Reject except for this partition.
@@ -72,7 +74,6 @@ class Aggregator {
           }
 
           totalLines++;
-
 
           strategy.feed(line);
 
