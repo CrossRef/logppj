@@ -21,7 +21,6 @@ public class DomainCSVAggregatorStrategy implements AggregatorStrategy {
   long inputCount = 0;
 
   // Map of Domain string => Date string => count.
-  // Date strings as receive them are interned because there is a very small set of possible dates but my goodness there are a lot of instances.
   HashMap<String, Map<String, Integer>> counter;
 
   Partitioner partitioner;
@@ -55,8 +54,6 @@ public class DomainCSVAggregatorStrategy implements AggregatorStrategy {
 
   // line is [date, doi, code, domain]
   public void feed(String[] line) {
-    // System.out.println(Arrays.toString(line));
-
     String domain = line[3];
     String date = line[0];
 
@@ -86,7 +83,7 @@ public class DomainCSVAggregatorStrategy implements AggregatorStrategy {
         writer.write("\n");
       }
 
-      writer.write("\n\n");
+      writer.write("\n");
     }
   }
 }

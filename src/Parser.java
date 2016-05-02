@@ -35,8 +35,6 @@ public  class Parser {
   // To indicate that it was a local file.
   static String LOCAL_DOMAIN = "local.special";
 
-  private LineParser lineParser = new LineParser();
-
   // Pattern to handle OpenURL requests (for error handling).
   private Pattern openurlRe = Pattern.compile("^([\\d.]+) HTTP:OpenURL");
 
@@ -85,6 +83,12 @@ public  class Parser {
         } else if (referrer.startsWith("REFERER:")) {
           // e.g. "REFERER: http://archaeology.about.com/gi/o.htm"
           referrer = referrer.replaceAll("REFERER: *", "");
+        }
+
+        // Weird prefixes crop up annoyingly often. Especially feedspot.
+        // e.g. "Feedspotbot: http://www.feedspot.com"
+        if (referrer.matches("^.*?https?://.*$")) {
+          referrer = referrer.replaceAll("^.*?(https?://.*)$", "$1");
         }
 
         // Next most common is a well-formed URL.
@@ -144,13 +148,13 @@ public  class Parser {
             host = "bit.ly";
           } else if (referrer.startsWith("javascript:")) {
             // e.g. "javascript:expandCollapse('infoBlockID', true);"
-            code = "N";
+            code = "U";
             host = UNKNOWN_DOMAIN;
           } else {
             try {
               // If it works, use that.
               URL url = new URL("http://" + referrer);
-              code = "U";
+              code = "H";
               host = url.getHost();
             } catch (MalformedURLException innerException) {
               // If we're here there's not much hope!
@@ -227,6 +231,10 @@ public  class Parser {
     Writer outputFile = null;
 
     for (File inputFile : this.inputDirectory.listFiles()) {
+      // LineParser uses the first format that works for this file.
+      // So a new one each file.
+      LineParser lineParser = new LineParser();
+
       // Ignore non-log files.
       if (!(inputFile.getName().startsWith("access_log") && inputFile.getName().endsWith(".gz"))) {
         continue;
@@ -244,7 +252,7 @@ public  class Parser {
         // Newlines count for something.
         totalChars += line.length() + 1;
 
-        String[] match = this.lineParser.parse(line);
+        String[] match = lineParser.parse(line);
 
         // It's possible that lines fail to parse.
         //  - OpenURL lines are missing fields so skip them.

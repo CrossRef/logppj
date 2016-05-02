@@ -70,12 +70,6 @@ public class Aggregator {
           // Line is [date, doi, code, domain].
           String[] line = lineInput.split("\t");
 
-          // In transition between new and old format, some unknown domains are represented as empty strings.
-          // TODO remove when all logs re-parsed.
-          if (line.length != 4) {
-            line = new String[] {line[0], line[1], "U", "unknown.special"};
-          }
-
           // Reject except for this partition.
           // Strategy knows how to partition.
           if (strategy.partition(line) != partitionNumber) {
