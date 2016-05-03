@@ -20,6 +20,9 @@ import java.util.Arrays;
 public class DOICSVAggregatorStrategy implements AggregatorStrategy {
   long inputCount = 0;
 
+  // If the DOI isn't resolved at least one on most days, don't bother.
+  static Integer PER_MONTH_CUTOFF = 20;
+
   // Map of Domain string => Date string => count.
   HashMap<String, Map<String, Integer>> counter;
 
@@ -74,6 +77,17 @@ public class DOICSVAggregatorStrategy implements AggregatorStrategy {
     // TODO month count threshold? 
 
     for (Map.Entry<String, Map<String, Integer>> doiEntry : this.counter.entrySet()) {
+      // If the total for this month for this DOI isn't over the threshold, don't write.
+      // Otherwise we get lots of single 'doi was resolved once on this date ever's.
+      Integer monthTotal = 0;
+      for (Map.Entry<String, Integer> dateEntry : doiEntry.getValue().entrySet()) {
+        monthTotal += dateEntry.getValue();
+      }
+
+      if (monthTotal < PER_MONTH_CUTOFF) {
+        continue;
+      }
+
       writer.write(doiEntry.getKey());
       writer.write("\n");
 

@@ -57,7 +57,7 @@ public class LineParser {
     if (pattern == this.re1) {
       String date = matcher.group(1);
       String doi = matcher.group(2).toLowerCase();
-      String referrer = matcher.group(3);
+      String referrer = matcher.group(3).toLowerCase();
       return new String[] {date, doi, referrer};
     } else if (pattern == this.re2) {
       String date = matcher.group(1);
