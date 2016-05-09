@@ -18,6 +18,9 @@ import java.util.Arrays;
 // «blank line»
 // «repeat»
 public class DomainCSVAggregatorStrategy implements AggregatorStrategy {
+  // Month or day?
+  boolean monthMode = false;
+
   long inputCount = 0;
 
   // Map of Domain string => Date string => count.
@@ -25,20 +28,29 @@ public class DomainCSVAggregatorStrategy implements AggregatorStrategy {
 
   Partitioner partitioner;
 
-  public DomainCSVAggregatorStrategy() {
+  public DomainCSVAggregatorStrategy(boolean monthMode) {
     this.reset();
+    this.monthMode = monthMode;
   }
 
   public String toString() {
-    return String.format("DomainAggregatorStrategy, %d partitions", this.numPartitions());
+    return String.format("DomainCSVAggregatorStrategy, %d partitions", this.numPartitions());
   }
 
   public int numPartitions() {
-    return 10;
+    if (this.monthMode) {
+      return 2;
+    } else {
+      return 10;
+    }
   }
 
   public String fileName(String date) {
-    return String.format("%s-domain.csv-chunks",  date);
+    if (this.monthMode) {
+      return String.format("%s-month-domain.csv-chunks",  date);
+    } else {
+      return String.format("%s-day-domain.csv-chunks",  date);
+    }
   }
 
   public void reset() {
@@ -57,6 +69,10 @@ public class DomainCSVAggregatorStrategy implements AggregatorStrategy {
     String domain = line[3];
     String date = line[0];
 
+    if (this.monthMode) {
+      // Truncate to first day of the month.
+      date = date.substring(0, 7) + "-01";
+    }
 
     Map<String, Integer> dateCounter = this.counter.get(domain);
     if (dateCounter == null) {
