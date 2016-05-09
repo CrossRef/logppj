@@ -2,6 +2,7 @@ package logpp.aggregatorstrategies;
 
 import logpp.*;
 
+
 import java.io.IOException;
 import java.io.Writer;
 import java.util.HashMap;
@@ -18,8 +19,9 @@ import java.util.Arrays;
 // «blank line»
 // «repeat»
 public class DomainCSVAggregatorStrategy implements AggregatorStrategy {
-  // Month or day?
-  boolean monthMode = false;
+  // One of MODE_MONTH, MODE_DAY
+  // Can't be MODE_YEAR because the files come to us per month so resut would be the same.
+  int mode = Constants.MODE_DAY;
 
   long inputCount = 0;
 
@@ -28,9 +30,9 @@ public class DomainCSVAggregatorStrategy implements AggregatorStrategy {
 
   Partitioner partitioner;
 
-  public DomainCSVAggregatorStrategy(boolean monthMode) {
+  public DomainCSVAggregatorStrategy(int mode) {
     this.reset();
-    this.monthMode = monthMode;
+    this.mode = mode;
   }
 
   public String toString() {
@@ -38,18 +40,18 @@ public class DomainCSVAggregatorStrategy implements AggregatorStrategy {
   }
 
   public int numPartitions() {
-    if (this.monthMode) {
-      return 2;
-    } else {
-      return 10;
+    switch (this.mode) {
+      case Constants.MODE_MONTH: return 2; 
+      case Constants.MODE_DAY: return 10; 
+      default: return 10; 
     }
   }
 
   public String fileName(String date) {
-    if (this.monthMode) {
-      return String.format("%s-month-domain.csv-chunks",  date);
-    } else {
-      return String.format("%s-day-domain.csv-chunks",  date);
+    switch (this.mode) {
+      case Constants.MODE_MONTH: return String.format("%s-month-domain.csv-chunks",  date); 
+      case Constants.MODE_DAY: return String.format("%s-day-domain.csv-chunks",  date); 
+      default: return String.format("%s-domain.csv-chunks",  date); 
     }
   }
 
@@ -69,9 +71,9 @@ public class DomainCSVAggregatorStrategy implements AggregatorStrategy {
     String domain = line[3];
     String date = line[0];
 
-    if (this.monthMode) {
-      // Truncate to first day of the month.
-      date = date.substring(0, 7) + "-01";
+    // Truncate if necessary.
+    switch (this.mode) {
+      case Constants.MODE_MONTH: date = date.substring(0, 7) + "-01"; break;
     }
 
     Map<String, Integer> dateCounter = this.counter.get(domain);
