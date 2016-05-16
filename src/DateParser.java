@@ -25,6 +25,14 @@ public class DateParser {
     DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss.SSS'Z'")
   };
 
+  // Compare this many characters to avoid re-parsing for lines EXCEPT twentyThirteenFormatter, as it's in a weird format.
+  // "yyyy-MM-dd HH:mm" 
+  private final int SIGNIFICANT_CHARS = 17;
+
+  // The last date string truncated to SIGNIFICANT_CHARS.
+  private String lastTruncatedDate = null;
+  private String[] lastResult = null;
+
   // The current datetimeformatter that we've found that works. Can swap around depending on log files.
   private DateTimeFormatter currentDateFormatter = this.twentyThirteenFormatter;
 
@@ -65,13 +73,29 @@ public class DateParser {
       dateStr = dateStr.replace("EDT", "-04:00");
     }
 
+    // Shortcut by comparing SIGNIFICANT_CHARS character of last date.
+    // This results in a 6x speedup for 3,000,000 inputs (90 seconds to 15 seconds).
+    // Doesn't work for twentyThirteenFormatter.
+    if (formatter != this.twentyThirteenFormatter) {
+      if (dateStr.substring(0, SIGNIFICANT_CHARS).equals(this.lastTruncatedDate)) {
+        return this.lastResult;
+      } else {
+        // If we didn't match then there's a new date, so clear out last one.
+        this.lastTruncatedDate = null;
+        this.lastResult = null;
+      }
+    }
+
     // Translate time into UTC.
     ZonedDateTime offsetDateTime = ZonedDateTime.parse(dateStr, formatter).toInstant().atZone(ZoneOffset.UTC);
 
     String yearMonthDay = String.format("%04d-%02d-%02d", offsetDateTime.getYear(), offsetDateTime.getMonth().getValue(), offsetDateTime.getDayOfMonth());
     String yearMonth = String.format("%04d-%02d", offsetDateTime.getYear(), offsetDateTime.getMonth().getValue());
 
-    return new String[] {yearMonth, yearMonthDay};
+    this.lastResult = new String[] {yearMonth, yearMonthDay};
+    this.lastTruncatedDate = dateStr.substring(0, SIGNIFICANT_CHARS);
+
+    return this.lastResult;
   }
 
 }
