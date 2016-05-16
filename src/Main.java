@@ -2,16 +2,45 @@ package logpp;
 
 import java.io.File;
 import logpp.aggregatorstrategies.*;
+import logpp.analyzerstrategies.*;
+
+import java.util.Arrays;
 
 public class Main {
-  static void aggregate(String[] argv)  {
-    if (argv.length != 3) {
-      System.err.println("Both input and output path must be supplied");
-      System.exit(1);
-    }
+  static void analyze(String workingDir)  {
+    String inputPath = workingDir + "/aggregated";
+    String outputPath = workingDir + "/analyzed";
 
-    String inputPath = argv[1];
-    String outputPath = argv[2];
+    File input = new File(inputPath);
+    File output = new File(outputPath);
+
+    System.out.format("Process %s to %s\n", inputPath, outputPath);
+    Analyzer analyzer = new Analyzer(input, output);
+
+    AnalyzerStrategy[] strategies = new AnalyzerStrategy[] {
+      // new TopNDomainsAnalyzerStrategy(),
+      // new DomainAnalyzerStrategy(),
+      // new DOIAnalyzerStrategy()
+
+      // new CodeTableAnalyzerStrategy()
+      // new TopNDomainsTableAnalyzerStrategy()
+    };
+
+    try {
+      for (AnalyzerStrategy strategy: strategies) {
+        System.out.format("Analyze with strategy: %s \n", strategy.toString());
+        analyzer.run(strategy);
+        System.out.format("Finished analyze with strategy: %s \n", strategy.toString());
+      }
+    } catch (Exception e) {
+      System.err.println("Error:");
+      e.printStackTrace();
+    }
+  }
+
+  static void aggregate(String workingDir)  {
+    String inputPath = workingDir + "/processed";
+    String outputPath = workingDir + "/aggregated";
 
     File input = new File(inputPath);
     File output = new File(outputPath);
@@ -20,9 +49,12 @@ public class Main {
     Aggregator aggregator = new Aggregator(input, output);
 
     AggregatorStrategy[] strategies = new AggregatorStrategy[] {
-      new DOIAggregatorStrategy(),
-      new CodeAggregatorStrategy(),
-      new DomainAggregatorStrategy()};
+      // months
+      // new DomainCSVAggregatorStrategy(Constants.MODE_MONTH),
+      
+      // new CodeCSVAggregatorStrategy()
+      // new DOICSVAggregatorStrategy()
+    };
 
     try {
       for (AggregatorStrategy strategy: strategies) {
@@ -36,17 +68,9 @@ public class Main {
     }
   }
 
-  static void preprocess(String[] argv)  {
-    if (argv.length != 3) {
-      System.err.println("Both input and output path must be supplied");
-      System.exit(1);
-    }
-    
-    String inputPath = argv[1];
-    String outputPath = argv[2];
-
-    System.out.println("Input directory: " + inputPath);
-    System.out.println("Output directory: " + outputPath);
+  static void preprocess(String workingDir)  {    
+    String inputPath = workingDir + "/logs";
+    String outputPath = workingDir + "/processed";
 
     File inputDir = new File(inputPath);
     File outputDir = new File(outputPath);
@@ -63,16 +87,20 @@ public class Main {
   }
 
   public static void main(String[] argv) {
-    String command = argv[0];
+    System.out.println("Run with " + Arrays.toString(argv));
 
-    if (argv.length < 1) {
-      System.err.println("Provide at least a command.");
+    if (argv.length < 2) {
+      System.err.println("Provide a command and a working directory.");
       System.exit(1);
     }
 
-    switch (argv[0]) {
-      case "pp": preprocess(argv); break;
-      case "aggregate": aggregate(argv); break;
+    String command = argv[0];
+    String workingDir = argv[1];
+
+    switch (command) {
+      case "pp": preprocess(workingDir); break;
+      case "aggregate": aggregate(workingDir); break;
+      case "analyze": analyze(workingDir); break;
     }
     
   }

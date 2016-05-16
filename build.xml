@@ -35,7 +35,6 @@
     <java classname="logpp.Main" classpath="${build}">
       <arg value="${arg0}"/>
       <arg value="${arg1}"/>
-      <arg value="${arg2}"/>
     </java>
 
   </target>
