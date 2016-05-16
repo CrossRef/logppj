@@ -1,5 +1,7 @@
 package logpp;
 
+import logpp.etld.ETLD;
+
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
@@ -25,10 +27,13 @@ import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.zip.GZIPInputStream;
+import java.util.Arrays;
 
 // A parser for log files.
 // Stateful, because it holds several file handles for multiplexing output.
 public  class Parser {
+  ETLD etld;
+
   // To indicate that it wasn't supplied.
   static String UNKNOWN_DOMAIN = "unknown.special";
 
@@ -51,12 +56,31 @@ public  class Parser {
   // Reference comparison against this.
   private Writer nullWriter = new NullOutputStream();
 
+  // Mapping if possible prefixes to full string replacement.
+  // NB matches will be post-lowercase.
+  private String[][] PREFIX_PAIRS = new String[][] {
+    // Found with with capital 'R' and 'C' in the wild.
+    new String[] {"app:/readcube.swf", "weird://readcube.special"},
+
+    // Don't know where this comes from. Looks like generic SWF file.
+    // https://en.wikipedia.org/wiki/Adobe_SWC_file
+    new String[] {"app:/library.swf", "weird://unknown.special"},
+
+    // Page number? 
+    // E.g."app:/p822.swf"
+    new String[] {"app:/p", "weird://unknown.special"},
+
+  };
+
   public Parser(File inputDirectory, File outputDirectory) {
+    this.etld = new ETLD();
+    // Add the special "special" special domain for recording special things like UNKNOWN_DOMAIN.
+    this.etld.addLine("special");
     this.inputDirectory = inputDirectory;
     this.outputDirectory = outputDirectory;
   }
 
-  // Parse referrer string into [code domain]
+  // Parse referrer string into [code, whole-domain, subdomains, domain]
   // Code is 
   // "H" for HTTP protocol
   // "S" for HTTPS protocol
@@ -91,6 +115,13 @@ public  class Parser {
           referrer = referrer.replaceAll("^.*?(https?://.*)$", "$1");
         }
 
+        // Catch these mappings before we build the host.
+        for (String[] prefixPair : PREFIX_PAIRS) {
+          if (referrer.startsWith(prefixPair[0])) {
+            referrer = prefixPair[1];
+          }
+        }
+
         // Next most common is a well-formed URL.
         URL url = new URL(referrer);
         host = url.getHost();
@@ -113,6 +144,10 @@ public  class Parser {
             code = "L";
             host = LOCAL_DOMAIN;
             break;
+          case "weird":
+            // Can be introduced by PREFIX_PAIRS.
+            code = "W";
+            break;
           default:
             // We got a valid URL but don't know what the protocol is.
             // Not safe to supply the host because we don't know it's meaningful.
@@ -127,9 +162,6 @@ public  class Parser {
         if (referrer.equals("about:blank")) {
             code = "N";
             host = LOCAL_DOMAIN;
-          } else if (referrer.startsWith("app:/ReadCube.swf")) {
-            code = "W";
-            host = "readcube.special";
           } else if (referrer.matches("^[A-Z]:\\\\.*$")) {
             // Some Windows drive. 
             code = "L"; 
@@ -173,7 +205,8 @@ public  class Parser {
       code = "U";
     }
 
-    return new String[] {code, host};
+    String[] domainParts = this.etld.getParts(host);
+    return new String[] {code, host, domainParts[0], domainParts[1]};
   }
 
   // Return the file handle.
@@ -249,78 +282,96 @@ public  class Parser {
 
       String line;
       while ((line = bufferedReader.readLine()) != null) {
-        // Newlines count for something.
-        totalChars += line.length() + 1;
+        try {
 
-        String[] match = lineParser.parse(line);
+          // System.out.println(line);
 
-        // It's possible that lines fail to parse.
-        //  - OpenURL lines are missing fields so skip them.
-        //  - Some DOIs have spaces in them and it's impossible to parse.
-        //  - Sometimes huge fragments of HTML are passed in.
-        //  - Sometimes weird bytes creep in. Call it solar radiation.
-        // The failure rate is roughly 0.05%
-        if (match == null) {
-          if (openurlRe.matcher(line).find()) {
-            openUrlIgnores ++;
+          // Newlines count for something.
+          totalChars += line.length() + 1;
+
+          String[] match = lineParser.parse(line);
+
+          // It's possible that lines fail to parse.
+          //  - OpenURL lines are missing fields so skip them.
+          //  - Some DOIs have spaces in them and it's impossible to parse.
+          //  - Sometimes huge fragments of HTML are passed in.
+          //  - Sometimes weird bytes creep in. Call it solar radiation.
+          // The failure rate is roughly 0.05%
+          if (match == null) {
+            if (openurlRe.matcher(line).find()) {
+              openUrlIgnores ++;
+            } else {
+              failedLines ++;
+            }
           } else {
-            failedLines ++;
-          }
-        } else {
-          String dateString = match[0];
-          String doi = match[1];
-          String referrerString = match[2];
+            String dateString = match[0];
+            String doi = match[1];
+            String referrerString = match[2];
 
-          // Year-month for log file name, year-month-day for log entry.
-          String[] parsedDate = this.dateParser.parseDate(dateString);
-          String yearMonth = parsedDate[0];
-          String yearMonthDay = parsedDate[1];
-          
-          // Interrupt this processing to take a shortcut if necessary.
-          // Decide on the output writer for this line. In nearly all cases it will be the same as last time.
-          // If the year-month changed look up the new file.
-          if (!yearMonth.equals(previousYearMonth)) {
-            System.out.format("Change writer: %s -> %s\n", previousYearMonth, yearMonth);
+            // Year-month for log file name, year-month-day for log entry.
+            String[] parsedDate = this.dateParser.parseDate(dateString);
+            String yearMonth = parsedDate[0];
+            String yearMonthDay = parsedDate[1];
+            
+            // Interrupt this processing to take a shortcut if necessary.
+            // Decide on the output writer for this line. In nearly all cases it will be the same as last time.
+            // If the year-month changed look up the new file.
+            if (!yearMonth.equals(previousYearMonth)) {
+              System.out.format("Change writer: %s -> %s\n", previousYearMonth, yearMonth);
 
-            // Wight have a number of file handles on the go.
-            // Save having too many fullish buffers hanging around.
-            // First time round it's null.
-            if (outputFile != null) {
-              outputFile.flush();
+              // Wight have a number of file handles on the go.
+              // Save having too many fullish buffers hanging around.
+              // First time round it's null.
+              if (outputFile != null) {
+                outputFile.flush();
+              }
+
+              outputFile = this.getOutputFile(yearMonth);
+              previousYearMonth = yearMonth;
             }
 
-            outputFile = this.getOutputFile(yearMonth);
-            previousYearMonth = yearMonth;
+            // If it is a file that we refused to over-write, don't bother parsing the rest.
+            if (outputFile == this.nullWriter) {
+              continue;
+            }
+
+            // Get the full domain and code.
+            String[] parsedReferrer = parseReferrer(referrerString);
+            String referrerCode = parsedReferrer[0];
+            String referrerFullDomain = parsedReferrer[1];
+            String referrerSubdomains = parsedReferrer[2];
+            String referrerDomain = parsedReferrer[3];
+
+
+
+            // «YYYY-MM-DD in UTC» «DOI» «code» «referring domain»
+            outputFile.write(yearMonthDay);
+            outputFile.write("\t");
+            outputFile.write(doi);
+            outputFile.write("\t");
+            outputFile.write(referrerCode);
+            outputFile.write("\t");
+            outputFile.write(referrerFullDomain);
+            outputFile.write("\t");
+            outputFile.write(referrerSubdomains);
+            outputFile.write("\t");
+            outputFile.write(referrerDomain);
+            outputFile.write("\n");
           }
 
-          // If it is a file that we refused to over-write, don't bother parsing the rest.
-          if (outputFile == this.nullWriter) {
-            continue;
+          totalLines ++;
+
+          // Every million lines. 
+          if (totalLines % 1000000 == 0) {
+            System.out.format("Processed lines: %d, characters: %d, failed: %d, OpenURL: %d\n", totalLines, totalChars, failedLines, openUrlIgnores);
+            
+            // This solves weird flushing issues.
+            System.out.println("");
           }
-
-          String[] parsedReferrer = parseReferrer(referrerString);
-          String referrerCode = parsedReferrer[0];
-          String  referrerDomain = parsedReferrer[1];
-
-          // «YYYY-MM-DD in UTC» «DOI» «code» «referring domain»
-          outputFile.write(yearMonthDay);
-          outputFile.write("\t");
-          outputFile.write(doi);
-          outputFile.write("\t");
-          outputFile.write(referrerCode);
-          outputFile.write("\t");
-          outputFile.write(referrerDomain);
-          outputFile.write("\n");
-        }
-
-        totalLines ++;
-
-        // Every million lines. 
-        if (totalLines % 1000000 == 0) {
-          System.out.format("Processed lines: %d, characters: %d, failed: %d, OpenURL: %d\n", totalLines, totalChars, failedLines, openUrlIgnores);
-          
-          // This solves weird flushing issues.
-          System.out.println("");
+        } catch (Exception e) {
+          System.out.println("ERROR ");
+          e.printStackTrace();
+          System.out.println(line);
         }
       }
 

@@ -14,6 +14,11 @@
 
   <target name="compile" depends="init" description="compile the source">
     <javac srcdir="${src}" includeantruntime="false"  destdir="${build}" target="1.8" source="1.8" debug="true"/>
+
+    <!-- Allow to load etld from ant run -->
+    <copy todir="${build}">
+      <fileset file="resources/public_suffix_list.dat.txt" />
+    </copy>
   </target>
 
   <target name="jar" depends="compile" description="generate the distribution">
@@ -21,11 +26,13 @@
 
     <jar destfile="${dist}/Main.jar" basedir="${build}">
         <manifest><attribute name="Main-Class" value="logpp.Main" /></manifest>
+        <!-- ALlow to load etld from jar -->
+        <fileset file="resources/public_suffix_list.dat.txt" />
     </jar>
   </target>
 
   <target name="run" depends="compile">
-    <java classname="logpp.Main"  classpath="${build}">
+    <java classname="logpp.Main" classpath="${build}">
       <arg value="${arg0}"/>
       <arg value="${arg1}"/>
       <arg value="${arg2}"/>
