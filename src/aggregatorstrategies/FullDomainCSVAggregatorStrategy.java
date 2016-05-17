@@ -18,7 +18,7 @@ import java.util.Arrays;
 // ...
 // «blank line»
 // «repeat»
-public class DomainCSVAggregatorStrategy implements AggregatorStrategy {
+public class FullDomainCSVAggregatorStrategy implements AggregatorStrategy {
   // One of MODE_MONTH, MODE_DAY
   // Can't be MODE_YEAR because the files come to us per month so resut would be the same.
   int mode = Constants.MODE_DAY;
@@ -30,28 +30,28 @@ public class DomainCSVAggregatorStrategy implements AggregatorStrategy {
 
   Partitioner partitioner;
 
-  public DomainCSVAggregatorStrategy(int mode) {
+  public FullDomainCSVAggregatorStrategy(int mode) {
     this.reset();
     this.mode = mode;
   }
 
   public String toString() {
-    return String.format("DomainCSVAggregatorStrategy, %d partitions", this.numPartitions());
+    return String.format("FullDomainCSVAggregatorStrategy, %d partitions", this.numPartitions());
   }
 
   public int numPartitions() {
     switch (this.mode) {
       case Constants.MODE_MONTH: return 2; 
-      case Constants.MODE_DAY: return 5; 
+      case Constants.MODE_DAY: return 10; 
       default: return 10; 
     }
   }
 
   public String fileName(String date) {
     switch (this.mode) {
-      case Constants.MODE_MONTH: return String.format("%s-month-domain.csv-chunks",  date); 
-      case Constants.MODE_DAY: return String.format("%s-day-domain.csv-chunks",  date); 
-      default: return String.format("%s-domain.csv-chunks",  date); 
+      case Constants.MODE_MONTH: return String.format("%s-month-fulldomain.csv-chunks",  date); 
+      case Constants.MODE_DAY: return String.format("%s-day-fulldomain.csv-chunks",  date); 
+      default: return String.format("%s-fulldomain.csv-chunks",  date); 
     }
   }
 
@@ -61,14 +61,15 @@ public class DomainCSVAggregatorStrategy implements AggregatorStrategy {
     this.inputCount = 0;
   }
 
-  // [date, doi, code, full-domain, subdomains, domain]
+  // line is [date, doi, code, full-domain, subdomain, domain]
   public int partition(String[] line) {
+    // Use domain so full-domains with same domain are close to each other.
     return this.partitioner.partition(line[5]);
-  } 
+  }
 
   // line is [date, doi, code, full-domain, subdomain, domain]
   public void feed(String[] line) {
-    String domain = line[5];
+    String domain = line[3];
     String date = line[0];
 
     // Truncate if necessary.

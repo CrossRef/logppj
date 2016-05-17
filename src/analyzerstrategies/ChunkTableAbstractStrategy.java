@@ -113,7 +113,7 @@ public abstract class ChunkTableAbstractStrategy implements AnalyzerStrategy, Ch
 
   // ChunkParserCallback
   public void line(String line) {    
-    String[] dateCount = line.split(",");
+    String[] dateCount = line.split(",", -1);
     this.dates.add(dateCount[0]);
 
     Map<String, String> itemCounts = this.dateHeaderCount.get(dateCount[0]);

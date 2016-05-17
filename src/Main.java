@@ -19,7 +19,8 @@ public class Main {
 
     AnalyzerStrategy[] strategies = new AnalyzerStrategy[] {
       // new TopNDomainsAnalyzerStrategy(),
-      // new DomainAnalyzerStrategy(),
+      // new DomainCSVAnalyzerStrategy(),
+      // new SubdomainCSVAnalyzerStrategy(),
       // new DOIAnalyzerStrategy()
 
       // new CodeTableAnalyzerStrategy()
@@ -49,8 +50,9 @@ public class Main {
     Aggregator aggregator = new Aggregator(input, output);
 
     AggregatorStrategy[] strategies = new AggregatorStrategy[] {
-      // months
-      // new DomainCSVAggregatorStrategy(Constants.MODE_MONTH),
+      new DomainCSVAggregatorStrategy(Constants.MODE_DAY),
+      new FullDomainCSVAggregatorStrategy(Constants.MODE_MONTH)
+
       
       // new CodeCSVAggregatorStrategy()
       // new DOICSVAggregatorStrategy()

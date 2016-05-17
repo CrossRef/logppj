@@ -48,7 +48,7 @@ public class DOIAggregatorStrategy implements AggregatorStrategy {
     return this.partitioner.partition(line[1]);
   }
 
-  // Line is [date, doi, code, domain]
+  // Line is [date, doi, code, full-domain, subdomains, domain]
   public void feed(String[] line) {
     Integer doiId = this.doiIds.get(line[1]);
     // date:doi

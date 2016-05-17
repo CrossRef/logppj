@@ -55,7 +55,7 @@ public class DOICSVAggregatorStrategy implements AggregatorStrategy {
     return this.partitioner.partition(line[1]);
   } 
 
-  // line is [date, doi, code, domain]
+  // line is [date, doi, code, full-domain, subdomains, domain]
   public void feed(String[] line) {
     String doi = line[1].toLowerCase();
     String date = line[0];

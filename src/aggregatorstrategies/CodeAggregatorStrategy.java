@@ -58,7 +58,7 @@ public class CodeAggregatorStrategy implements AggregatorStrategy {
   public void write(Writer writer) throws IOException {
     for (Map.Entry<String, Integer> entry : this.counter.entrySet()) {
       Integer count = entry.getValue();
-      String[] dateCode = entry.getKey().split(":");
+      String[] dateCode = entry.getKey().split(":", -1);
       
       // code
       writer.write(dateCode[1]);

@@ -51,7 +51,7 @@ public class CodeCSVAggregatorStrategy implements AggregatorStrategy {
     return 0;
   } 
 
-  // line is [date, doi, code, domain]
+  // line is [date, doi, code, full-domain, subdomains, domain]
   public void feed(String[] line) {
     String code = line[2];
     String date = line[0];

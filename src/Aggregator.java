@@ -67,8 +67,8 @@ public class Aggregator {
 
         String lineInput;
         while ((lineInput = input.readLine()) != null) {
-          // Line is [date, doi, code, domain].
-          String[] line = lineInput.split("\t");
+          // Line is [date, doi, code, full-domain, subdomains, domain].
+          String[] line = lineInput.split("\t", -1);
 
           // Reject except for this partition.
           // Strategy knows how to partition.
