@@ -51,10 +51,8 @@ public class Main {
 
     AggregatorStrategy[] strategies = new AggregatorStrategy[] {
       new DomainCSVAggregatorStrategy(Constants.MODE_DAY),
-      new FullDomainCSVAggregatorStrategy(Constants.MODE_MONTH)
-
-      
-      // new CodeCSVAggregatorStrategy()
+      new FullDomainCSVAggregatorStrategy(Constants.MODE_MONTH),
+      new CodeCSVAggregatorStrategy()
       // new DOICSVAggregatorStrategy()
     };
 

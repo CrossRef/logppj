@@ -55,7 +55,14 @@ public class Aggregator {
       // Drop the extension.
       filename = filename.substring(0, 7);
 
-      Writer output = new BufferedWriter(new FileWriter(new File(this.outputDirectory, strategy.fileName(filename))));
+      // If this aggregation already ran skip it.
+      File outputFile = new File(this.outputDirectory, strategy.fileName(filename));
+      if (outputFile.exists()) {
+        System.out.format("Aggregate output file %s already exists, skipping.\n", outputFile.toString());
+        continue;
+      }
+
+      Writer output = new BufferedWriter(new FileWriter(outputFile));
       long totalLines = 0;
 
       // Split the file into partitions.
