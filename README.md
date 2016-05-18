@@ -1,6 +1,6 @@
 # LogPPJ
 
-Log Pre-Processor (in Java) takes DOI resolution logs and processes them into aggregates for use elsewhere. Works with normal files (some gzipped), no external dependencies. Crossref log files weigh in 100GB per year compressed, 500 GB uncompressed. Processing a month's (or even a year's) worth of files can be done on a laptop overnight.
+Log Pre-Processor (in Java) takes DOI resolution logs (e.g. from CNRI) and processes them into aggregates for use elsewhere. Works with normal files (some gzipped), no external serivce or library dependencies. Crossref log files weigh in 100GB per year compressed, 500 GB uncompressed. Processing a month's worth of files, which adds up to 400,000,000 lines can be done in a few hours. A whole year (5 billion lines) can be done overnight.
 
 # How to use LogPPJ
 
@@ -43,8 +43,6 @@ Weirdnesses:
  - Dates are round in at least 3 different formats.
  - Refferers are up to the browser. So all kinds of weird stuff is found in there (take a look at `Parser.java` for examples).
 
-
-
 ## 2: Aggregate processed files
 
 The processed log files, which correspond to one per month, are aggregated to count various features. This creates an output file, one per month per type.
@@ -77,9 +75,9 @@ The aggreated files are combined into usable outputs, stored in `/analysis`. Thi
 Then:
 
   1. Put at least 3 months' log files in `/path/to/base/dir/logs`
-  2. Run `java -jar dist/Main.jar process /path/to/base/dir` to parse those log files
-  3. Run `java -jar dist/Main.jar aggregate /path/to/base/dir`
-  4. Run `java -jar dist/Main.jar analyze /path/to/base/dir`
+  2. Run `java -jar dist/Main.jar process /path/to/base/dir` to parse those log files. Takes a couple of hours.
+  3. Run `java -jar dist/Main.jar aggregate /path/to/base/dir`. Takes a couple of hours.
+  4. Run `java -jar dist/Main.jar analyze /path/to/base/dir`. Takes 12 seconds.
   5. Enjoy output in `/path/to/base/dir/analyzed`
   6. If more log files come in:
     1. Put new month's log files in in `/path/to/base/dir/logs`
@@ -94,10 +92,6 @@ Note:
  - Aggregated files aren't overwritten. You can run the `aggregated` command at any time and it will only recalculate the data that hasn't already been calculated.
  - Don't delete aggregated files, they're all needed for the next stage.
 
-# Development
-
-Can be run directly by ant: `time ant run  -Darg0=analyze -Darg1=/data-in/logs`
-
 # Effective TLD
 
 Referrer domains (when they are known), e.g. "http://en.wikipedia.org" are split into domain, e.g. "wikipedia.org" and subdomain, e.g. "en". These are represented in the output as "full domain", e.g. "en.wikipedia.org" and "domain", e.g. "wikipedia.org". This is done using the `public_suffix_list.dat` which is included here and available at `https://publicsuffix.org/list/public_suffix_list.dat`. This list is useful rather than precise. It will split "abc.def.co.uk" into "abc.co.uk", but also has some convenience entries, so that e.g. "github.io" and "blogspot.com" are treated as eTLDs. This should be borne in mind.
@@ -105,3 +99,18 @@ Referrer domains (when they are known), e.g. "http://en.wikipedia.org" are split
 # See also
 
 The voracious reader might want to consult [Handle manual](http://www.handle.net/tech_manual/HN_Tech_Manual_8.pdf), section 3.7.1 . 
+
+
+# Development notes
+
+Can be run directly by ant: `time ant run  -Darg0=analyze -Darg1=/data-in/logs`.
+
+For both the Aggregator and the Analyzer stages, the input is split into partitions. For every Aggregator/Analyzer Strategy, the input is run through as many times as there are partitions. These are done serially rather than in parallel because the partition size is designed to use as much RAM as possible without swapping. It's better to do a good chunk at once that's as large as possible than lots of smaller ones in parallel.
+
+The `process` stage is also done in parallel because due to the timezones input files are multiplexed to output files. As initial processing is a low-volume activity there was no need to make everything threadsafe. Many classes are stateful and not threadsafe (because they don't have to be) in order to achieve speedups:
+
+ - `LineParser` chooses the best format for parsing the lines and remembers it
+ - `DateParser` chooses the best time format and remembers it
+ - `DateParser` remembers the last date in order to avoid having to re-parse each in a series of dates that occur on the day
+ - `ETLD` has a cache of domain lookups
+ - `AggregatorStrategy` is stateful in that it has a counter object and the above parsers. They have a 'reset' function. Parallelizing would require creation of a further layer of `AggregatorStrategyAbstractFactory`s...
