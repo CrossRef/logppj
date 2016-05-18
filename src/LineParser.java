@@ -54,6 +54,7 @@ public class LineParser {
       return null;
     }
 
+    // Lines conforming to re2 simply don't include the referrer.
     if (pattern == this.re1) {
       String date = matcher.group(1);
       String doi = matcher.group(2).toLowerCase();

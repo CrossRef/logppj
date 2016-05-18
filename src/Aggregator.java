@@ -29,7 +29,7 @@ import java.util.regex.Pattern;
 import java.util.zip.GZIPInputStream;
 import java.io.FileInputStream;
 
-
+// Take all files from the `processed` directory and perform various aggregations, as determined by an `AggregatorStrategy`.
 public class Aggregator {
   File inputDirectory;
   File outputDirectory;

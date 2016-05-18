@@ -23,6 +23,7 @@ public abstract class ChunkTableAbstractStrategy implements AnalyzerStrategy, Ch
   // All the chunk headers we've seen.
   SortedSet<String> headers = new TreeSet<>();
 
+  // Makes callbacks on this.
   private ChunkParser chunkParser = new ChunkParser(this);
 
   // Date => Header => Count

@@ -1,5 +1,6 @@
 package logpp;
 
+// Event-based parser for a CSV Chunk file. Make callbacks.
 public class ChunkParser {
   String currentHeader = null;
   ChunkParserCallback callback = null;
@@ -9,7 +10,7 @@ public class ChunkParser {
   }
 
   public void feed(String line) {
-    // Expect domain name.
+    // Expect header name.
     if (this.currentHeader == null) {
       this.currentHeader = line;
       this.callback.header(line);

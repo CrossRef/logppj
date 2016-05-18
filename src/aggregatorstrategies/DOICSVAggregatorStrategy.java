@@ -9,14 +9,8 @@ import java.util.Map;
 import java.util.Arrays;
 
 // Count DOI name per day.
-// Output as:
-// doi
-// «date» «count»
-// «date» «count»
-// «date» «count»
-// ...
-// «blank line»
-// «repeat»
+// Output as CSV Chunks
+// TODO not currently in use
 public class DOICSVAggregatorStrategy implements AggregatorStrategy {
   long inputCount = 0;
 

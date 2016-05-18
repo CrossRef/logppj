@@ -11,14 +11,15 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Collections;
 
-// Glom all chunks per domain together.
-// All fits in memory. 
+// Take a load of CSV Chunk files and combine into one file, combining the sections over files.
 // Don't try and parse the CSV lines within each chunk.
 public abstract class ChunkGlommerAbstractStrategy implements AnalyzerStrategy, ChunkParserCallback {
   private Partitioner partitioner = new Partitioner(this.getNumPartitions());
 
+  // Makes callbacks on this.
   private ChunkParser chunkParser = new ChunkParser(this);
 
+  // header (e.g. domain name) -> lines within chunks with that header. 
   private Map<String, List<String>> collection;
 
   // Name of current chunk.
@@ -98,9 +99,6 @@ public abstract class ChunkGlommerAbstractStrategy implements AnalyzerStrategy, 
     this.chunkCount++;
 
     this.interestedInChunk = (this.partitioner.partition(name) == this.currentPartitionNumber);
-    
-
-    // System.out.format("Header %s interested? %s \n", name, this.interestedInChunk);
   }
 
   // ChunkParserCallback

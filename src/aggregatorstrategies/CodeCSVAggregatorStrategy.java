@@ -9,25 +9,21 @@ import java.util.Map;
 import java.util.Arrays;
 
 // Count referring type code per day.
-// Output as:
-// »code»
-// «date» «count»
-// «date» «count»
-// «date» «count»
-// ...
-// «blank line»
-// «repeat»
+// Output as CSV Chunks.
 public class CodeCSVAggregatorStrategy implements AggregatorStrategy {
-  DateProjector dateProjector;
+  // How to truncate dates.
+  private DateProjector dateProjector;
 
-  Counter2d counter;
+  // code -> date -> count
+  private Counter2d counter;
 
-  long inputCount = 0;
+  private long inputCount = 0;
 
-  Partitioner partitioner;
+  private Partitioner partitioner;
 
   public CodeCSVAggregatorStrategy(DateProjector dateProjector) {
     this.dateProjector = dateProjector;
+    this.partitioner = new Partitioner(this.numPartitions());
     this.reset();
   }
 
@@ -35,20 +31,22 @@ public class CodeCSVAggregatorStrategy implements AggregatorStrategy {
     return String.format("CodeCSVAggregatorStrategy, %d partitions", this.numPartitions());
   }
 
+  // We only need one pass at this, the domain of codes is very small.
   public int numPartitions() {
     return 1;
   }
 
+  // Filename depends on the date projection (day or month).
   public String fileName(String date) {
     return String.format("%s-%s-code.csv-chunks", date, this.dateProjector.getName());
   }
 
   public void reset() {
     this.counter = new Counter2d();
-    this.partitioner = new Partitioner(this.numPartitions());
     this.inputCount = 0;
   }
 
+  // Eternally in partition 0. There is only one to choose from.
   public int partition(String[] line) {
     return 0;
   } 

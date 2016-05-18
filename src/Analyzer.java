@@ -29,7 +29,7 @@ import java.util.regex.Pattern;
 import java.util.zip.GZIPInputStream;
 import java.io.FileInputStream;
 
-
+// Take outputs from the aggregator and perform various analyses on them, as defined by a supplied `AnalyzerStrategy`.
 public class Analyzer {
   File inputDirectory;
   File outputDirectory;

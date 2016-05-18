@@ -107,10 +107,16 @@ Can be run directly by ant: `time ant run  -Darg0=analyze -Darg1=/data-in/logs`.
 
 For both the Aggregator and the Analyzer stages, the input is split into partitions. For every Aggregator/Analyzer Strategy, the input is run through as many times as there are partitions. These are done serially rather than in parallel because the partition size is designed to use as much RAM as possible without swapping. It's better to do a good chunk at once that's as large as possible than lots of smaller ones in parallel.
 
-The `process` stage is also done in parallel because due to the timezones input files are multiplexed to output files. As initial processing is a low-volume activity there was no need to make everything threadsafe. Many classes are stateful and not threadsafe (because they don't have to be) in order to achieve speedups:
+Heuristics based on Crossref's data. For DataCite's data the numbers will be different, but the amount of data will be much lower anyway, so it doesn't much matter.
+
+The `process` stage is also done in serial because due to the timezones input files are multiplexed to output files. As initial processing is a low-volume activity there was no need to make everything threadsafe. Many classes are stateful and not threadsafe (because they don't have to be) in order to achieve speedups:
 
  - `LineParser` chooses the best format for parsing the lines and remembers it
  - `DateParser` chooses the best time format and remembers it
  - `DateParser` remembers the last date in order to avoid having to re-parse each in a series of dates that occur on the day
  - `ETLD` has a cache of domain lookups
  - `AggregatorStrategy` is stateful in that it has a counter object and the above parsers. They have a 'reset' function. Parallelizing would require creation of a further layer of `AggregatorStrategyAbstractFactory`s...
+
+ Dates are stored as Strings. There is a whole constellation of types of date representations available in the JRE but we're only interested in YYYY-MM-DD in UTC.
+
+ 

@@ -10,27 +10,21 @@ import java.util.Map;
 import java.util.Arrays;
 
 // Count referring domain name per day.
-// Output as:
-// «domain»
-// «date» «count»
-// «date» «count»
-// «date» «count»
-// ...
-// «blank line»
-// «repeat»
+// Output as CSV Chunks.
 public class DomainCSVAggregatorStrategy implements AggregatorStrategy {
   // Used to project the date for aggregation, e.g. truncate to the month.
   private DateProjector dateProjector;
 
   private long inputCount = 0;
 
-  // Map of Domain string => Date string => count.
+  // Domain -> date => count.
   private Counter2d counter = new Counter2d();
 
   private Partitioner partitioner;
 
   public DomainCSVAggregatorStrategy(DateProjector dateProjector) {
     this.dateProjector = dateProjector;
+    this.partitioner = new Partitioner(this.numPartitions());
 
     this.reset();
   }
@@ -39,6 +33,7 @@ public class DomainCSVAggregatorStrategy implements AggregatorStrategy {
     return String.format("DomainCSVAggregatorStrategy, %d partitions", this.numPartitions());
   }
 
+  // Different projection modes have different amounts of data to store, so smaller partition sizes required for "day".
   public int numPartitions() {
     switch (this.dateProjector.getName()) {
       case "month": return 2; 
@@ -47,13 +42,13 @@ public class DomainCSVAggregatorStrategy implements AggregatorStrategy {
     }
   }
 
+  // Filename depends on the date projection (day or month).
   public String fileName(String date) {
     return String.format("%s-%s-domain.csv-chunks", date, this.dateProjector.getName());
   }
 
   public void reset() {
     this.counter = new Counter2d();
-    this.partitioner = new Partitioner(this.numPartitions());
     this.inputCount = 0;
   }
 

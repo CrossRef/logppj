@@ -32,6 +32,7 @@ import java.util.Arrays;
 // A parser for log files.
 // Stateful, because it holds several file handles for multiplexing output.
 public  class Parser {
+  // A parser for effective TLDs.
   ETLD etld;
 
   // To indicate that it wasn't supplied.
@@ -39,6 +40,15 @@ public  class Parser {
 
   // To indicate that it was a local file.
   static String LOCAL_DOMAIN = "local.special";
+
+  // Various codes.
+  static String CODE_HTTP = "H"; // for HTTP protocol
+  static String CODE_HTTPS = "S"; // for HTTPS protocol
+  static String CODE_FTP = "F"; // for FTP protocol.
+  static String CODE_FILE = "L"; // for file:// protocol.
+  static String CODE_UNKNOWN = "U"; // for unknown protocol, but domain supplied
+  static String CODE_NO_INFO = "N"; // for no information.
+  static String CODE_WEIRD = "W"; // for weird (e.g. readcube)
 
   // Pattern to handle OpenURL requests (for error handling).
   private Pattern openurlRe = Pattern.compile("^([\\d.]+) HTTP:OpenURL");
@@ -81,17 +91,10 @@ public  class Parser {
   }
 
   // Parse referrer string into [code, whole-domain, subdomains, domain]
-  // Code is 
-  // "H" for HTTP protocol
-  // "S" for HTTPS protocol
-  // "F" for FTP protocol.
-  // "L" for file protocol.
-  // "U" for unknown protocol, but domain supplied
-  // "N" for no information.
-  // "W" for weird (e.g. readcube)
+  // See consts above for code definitions.
   // Always return, sometimes empty string for domain.
   private String[] parseReferrer(String referrer) {
-    String code = "N";
+    String code = CODE_NO_INFO;
     // If there isn't one, use a placeholder.
     String host = UNKNOWN_DOMAIN;
 
@@ -131,62 +134,62 @@ public  class Parser {
         // https://docs.oracle.com/javase/8/docs/technotes/guides/language/strings-switch.html
         switch (protocol) {
           case "http":
-            code = "H";
+            code = CODE_HTTP;
             break;
           case "https":
-            code = "S";
+            code = CODE_HTTPS;
             break;
           case "ftp":
             // Yep.
-            code = "F";
+            code = CODE_FTP;
             break;
           case "file":
-            code = "L";
+            code = CODE_FILE;
             host = LOCAL_DOMAIN;
             break;
           case "weird":
             // Can be introduced by PREFIX_PAIRS.
-            code = "W";
+            code = CODE_WEIRD;
             break;
           default:
             // We got a valid URL but don't know what the protocol is.
             // Not safe to supply the host because we don't know it's meaningful.
             System.out.println("Unrecognised referrer protocol: " + url.getProtocol());
             System.out.println(referrer);
-            code = "O";
+            code = CODE_UNKNOWN;
             host = UNKNOWN_DOMAIN;
         }
       } catch (MalformedURLException exception) {
         // It's not a valid URL but it could be a valid domain without a scheme, e.g. "ask.com". In this case, try to build a URL with it.
         // But first some well known exceptions (which might otherwise squash into a URL if we put "http://" in front).
         if (referrer.equals("about:blank")) {
-            code = "N";
+            code = CODE_NO_INFO;
             host = LOCAL_DOMAIN;
           } else if (referrer.matches("^[A-Z]:\\\\.*$")) {
             // Some Windows drive. 
-            code = "L"; 
+            code = CODE_FILE; 
             host = LOCAL_DOMAIN;
           } else if (referrer.startsWith("mhtml:")) {
             // MIME HTML, Internet Explorer saved page. Count as local file.
-            code = "L";
+            code = CODE_FILE;
             host = LOCAL_DOMAIN;
-          } else if (referrer.contains("domain=dlvr.it")) {
+          } else if (referrer.contains("dlvr.it")) {
             // e.g. "dlvrId=bcf15c60aa2d9e4f737603e82da64730; expires=Sat, 16-Feb-2013 21:24:04 GMT; path=/; domain=dlvr.it"
-            code = "U";
-            host = "dlvr.id";
-          } else if (referrer.contains("domain=.bit.ly")) {
+            code = CODE_UNKNOWN;
+            host = "dlvr.it";
+          } else if (referrer.contains("bit.ly")) {
             // e.g. "_bit=50f10b43-00008-07b21-401cf10a;domain=.bit.ly;expires=Thu Jul 11 07:05:39 2013;path=/; HttpOnly"
-            code = "U";
+            code = CODE_UNKNOWN;
             host = "bit.ly";
           } else if (referrer.startsWith("javascript:")) {
             // e.g. "javascript:expandCollapse('infoBlockID', true);"
-            code = "U";
+            code = CODE_UNKNOWN;
             host = UNKNOWN_DOMAIN;
           } else {
             try {
-              // If it works, use that.
+              // If it sticking http in front of it makes it a workable URL, use that.
               URL url = new URL("http://" + referrer);
-              code = "H";
+              code = CODE_HTTP;
               host = url.getHost();
             } catch (MalformedURLException innerException) {
               // If we're here there's not much hope!
@@ -202,7 +205,7 @@ public  class Parser {
     // giving empty domains. Ensure that under no circumstances we return an empty string.
     if (host.length() == 0) {
       host = UNKNOWN_DOMAIN;
-      code = "U";
+      code = CODE_UNKNOWN;
     }
 
     String[] domainParts = this.etld.getParts(host);
@@ -222,15 +225,10 @@ public  class Parser {
         System.err.format("WARNING: Not overwriting file: %s\n", f.getPath());
         writer = nullWriter;
       } else {
-        // writer = new BufferedWriter(new FileWriter(f));
-
-
         OutputStream fileStream = new FileOutputStream(f);
         OutputStream gzipStream = new GZIPOutputStream(fileStream);
         Writer encoder = new OutputStreamWriter(gzipStream, "UTF-8");
         writer = new BufferedWriter(encoder);
-
-
       }
 
       this.monthFiles.put(yearMonth, writer);
@@ -283,8 +281,6 @@ public  class Parser {
       String line;
       while ((line = bufferedReader.readLine()) != null) {
         try {
-
-          // System.out.println(line);
 
           // Newlines count for something.
           totalChars += line.length() + 1;
@@ -341,8 +337,6 @@ public  class Parser {
             String referrerFullDomain = parsedReferrer[1];
             String referrerSubdomains = parsedReferrer[2];
             String referrerDomain = parsedReferrer[3];
-
-
 
             // «YYYY-MM-DD in UTC» «DOI» «code» «referring domain»
             outputFile.write(yearMonthDay);

@@ -7,6 +7,8 @@ import logpp.analyzerstrategies.*;
 import java.util.Arrays;
 
 public class Main {
+
+  // Run all the analyses.
   static void analyze(String workingDir)  {
     String inputPath = workingDir + "/aggregated";
     String outputPath = workingDir + "/analyzed";
@@ -39,6 +41,7 @@ public class Main {
     }
   }
 
+  // Run all the aggregations.
   static void aggregate(String workingDir)  {
     String inputPath = workingDir + "/processed";
     String outputPath = workingDir + "/aggregated";
@@ -70,6 +73,7 @@ public class Main {
     }
   }
 
+  // Preprocess all files.
   static void preprocess(String workingDir)  {    
     String inputPath = workingDir + "/logs";
     String outputPath = workingDir + "/processed";
@@ -104,6 +108,5 @@ public class Main {
       case "aggregate": aggregate(workingDir); break;
       case "analyze": analyze(workingDir); break;
     }
-    
   }
 }
