@@ -18,13 +18,13 @@ public class Main {
     Analyzer analyzer = new Analyzer(input, output);
 
     AnalyzerStrategy[] strategies = new AnalyzerStrategy[] {
-      // new TopNDomainsAnalyzerStrategy(),
-      // new DomainCSVAnalyzerStrategy(),
-      // new SubdomainCSVAnalyzerStrategy(),
-      // new DOIAnalyzerStrategy()
-
-      // new CodeTableAnalyzerStrategy()
-      // new TopNDomainsTableAnalyzerStrategy()
+      new CodeTableAnalyzerStrategy(new TruncateDay()),
+      new CodeTableAnalyzerStrategy(new TruncateMonth()),
+      new FullDomainAnalyzerStrategy(new TruncateMonth()),
+      new DomainAnalyzerStrategy(new TruncateDay()),
+      
+      new TopNDomainsTableAnalyzerStrategy(new TruncateDay()),
+      new TopNDomainsTableAnalyzerStrategy(new TruncateMonth())
     };
 
     try {
@@ -50,10 +50,12 @@ public class Main {
     Aggregator aggregator = new Aggregator(input, output);
 
     AggregatorStrategy[] strategies = new AggregatorStrategy[] {
-      new DomainCSVAggregatorStrategy(Constants.MODE_DAY),
-      new FullDomainCSVAggregatorStrategy(Constants.MODE_MONTH),
-      new CodeCSVAggregatorStrategy()
-      // new DOICSVAggregatorStrategy()
+      new DomainCSVAggregatorStrategy(new TruncateDay()),
+      new DomainCSVAggregatorStrategy(new TruncateMonth()),
+      new FullDomainCSVAggregatorStrategy(new TruncateMonth()),
+      new CodeCSVAggregatorStrategy(new TruncateMonth()),
+      new CodeCSVAggregatorStrategy(new TruncateDay())
+      // TODO maybe put DOIs back?
     };
 
     try {
@@ -98,7 +100,7 @@ public class Main {
     String workingDir = argv[1];
 
     switch (command) {
-      case "pp": preprocess(workingDir); break;
+      case "process": preprocess(workingDir); break;
       case "aggregate": aggregate(workingDir); break;
       case "analyze": analyze(workingDir); break;
     }

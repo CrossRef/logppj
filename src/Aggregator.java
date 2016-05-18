@@ -37,6 +37,14 @@ public class Aggregator {
   public Aggregator(File inputDirectory, File outputDirectory) {
     this.inputDirectory = inputDirectory;
     this.outputDirectory = outputDirectory;
+
+    if (!this.inputDirectory.exists()) {
+      throw new IllegalArgumentException(String.format("Error: Input directory %s doesn't exist\n", this.inputDirectory));
+    }
+
+    if (!this.outputDirectory.exists()) {
+      throw new IllegalArgumentException(String.format("Error: Output directory %s doesn't exist\n", this.outputDirectory));
+    }
   }
   
   public void run(AggregatorStrategy strategy) throws FileNotFoundException, UnsupportedEncodingException, IOException {

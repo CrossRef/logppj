@@ -18,14 +18,16 @@ import java.util.Arrays;
 // «blank line»
 // «repeat»
 public class CodeCSVAggregatorStrategy implements AggregatorStrategy {
-  long inputCount = 0;
+  DateProjector dateProjector;
 
-  // Map of Code => Date string => count.
-  HashMap<String, Map<String, Integer>> counter;
+  Counter2d counter;
+
+  long inputCount = 0;
 
   Partitioner partitioner;
 
-  public CodeCSVAggregatorStrategy() {
+  public CodeCSVAggregatorStrategy(DateProjector dateProjector) {
+    this.dateProjector = dateProjector;
     this.reset();
   }
 
@@ -38,11 +40,11 @@ public class CodeCSVAggregatorStrategy implements AggregatorStrategy {
   }
 
   public String fileName(String date) {
-    return String.format("%s-code.csv-chunks",  date);
+    return String.format("%s-%s-code.csv-chunks", date, this.dateProjector.getName());
   }
 
   public void reset() {
-    this.counter = new HashMap<String, Map<String, Integer>>();
+    this.counter = new Counter2d();
     this.partitioner = new Partitioner(this.numPartitions());
     this.inputCount = 0;
   }
@@ -56,32 +58,15 @@ public class CodeCSVAggregatorStrategy implements AggregatorStrategy {
     String code = line[2];
     String date = line[0];
 
-    Map<String, Integer> dateCounter = this.counter.get(code);
-    if (dateCounter == null) {
-      dateCounter = new HashMap<String, Integer>();
-      this.counter.put(code, dateCounter);
-    }
-    dateCounter.put(date, dateCounter.getOrDefault(date, 0) + 1);
+    this.counter.inc(code, this.dateProjector.project(date));
 
     inputCount ++;
     if (inputCount % 1000000 == 0) {
-      System.out.format("Processed %d lines. Frequency table size: %d. \n", this.inputCount, this.counter.size());
+      System.out.format("Processed %d lines.. \n", this.inputCount);
     }
   }
 
   public void write(Writer writer) throws IOException {
-    for (Map.Entry<String, Map<String, Integer>> codeEntry : this.counter.entrySet()) {
-      writer.write(codeEntry.getKey());
-      writer.write("\n");
-
-      for (Map.Entry<String, Integer> dateEntry : codeEntry.getValue().entrySet()) {
-        writer.write(dateEntry.getKey());
-        writer.write(",");
-        writer.write(dateEntry.getValue().toString());
-        writer.write("\n");
-      }
-
-      writer.write("\n");
-    }
+    this.counter.writeChunks(writer);
   }
 }

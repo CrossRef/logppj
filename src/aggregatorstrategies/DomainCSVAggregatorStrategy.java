@@ -19,20 +19,20 @@ import java.util.Arrays;
 // «blank line»
 // «repeat»
 public class DomainCSVAggregatorStrategy implements AggregatorStrategy {
-  // One of MODE_MONTH, MODE_DAY
-  // Can't be MODE_YEAR because the files come to us per month so resut would be the same.
-  int mode = Constants.MODE_DAY;
+  // Used to project the date for aggregation, e.g. truncate to the month.
+  private DateProjector dateProjector;
 
-  long inputCount = 0;
+  private long inputCount = 0;
 
   // Map of Domain string => Date string => count.
-  Counter2d counter = new Counter2d();
+  private Counter2d counter = new Counter2d();
 
-  Partitioner partitioner;
+  private Partitioner partitioner;
 
-  public DomainCSVAggregatorStrategy(int mode) {
+  public DomainCSVAggregatorStrategy(DateProjector dateProjector) {
+    this.dateProjector = dateProjector;
+
     this.reset();
-    this.mode = mode;
   }
 
   public String toString() {
@@ -40,19 +40,15 @@ public class DomainCSVAggregatorStrategy implements AggregatorStrategy {
   }
 
   public int numPartitions() {
-    switch (this.mode) {
-      case Constants.MODE_MONTH: return 2; 
-      case Constants.MODE_DAY: return 5; 
+    switch (this.dateProjector.getName()) {
+      case "month": return 2; 
+      case "day": return 5; 
       default: return 10; 
     }
   }
 
   public String fileName(String date) {
-    switch (this.mode) {
-      case Constants.MODE_MONTH: return String.format("%s-month-domain.csv-chunks",  date); 
-      case Constants.MODE_DAY: return String.format("%s-day-domain.csv-chunks",  date); 
-      default: return String.format("%s-domain.csv-chunks",  date); 
-    }
+    return String.format("%s-%s-domain.csv-chunks", date, this.dateProjector.getName());
   }
 
   public void reset() {
@@ -71,12 +67,7 @@ public class DomainCSVAggregatorStrategy implements AggregatorStrategy {
     String domain = line[5];
     String date = line[0];
 
-    // Truncate if necessary.
-    switch (this.mode) {
-      case Constants.MODE_MONTH: date = date.substring(0, 7) + "-01"; break;
-    }
-
-    this.counter.inc(domain, date);
+    this.counter.inc(domain, this.dateProjector.project(date));
 
     inputCount ++;
     if (inputCount % 1000000 == 0) {

@@ -1,54 +1,30 @@
-# DOI Resolution Log Preprocessor
+# LogPPJ
 
-Takes log files from the DOI resolver servers and converts them to something a bit more usable and compact. Discards things we're not interested in, tidies up things that we are. Anonymises. Takes compressed log files as input.
+Log Pre-Processor (in Java) takes DOI resolution logs and processes them into aggregates for use elsewhere. Works with normal files (some gzipped), no external dependencies. Crossref log files weigh in 100GB per year compressed, 500 GB uncompressed. Processing a month's (or even a year's) worth of files can be done on a laptop overnight.
 
- - parses all the different date formats in play (currently 4) and converts to ISO8601
- - normalizes timezones to UTC
- - truncates times to the just day
- - normalizes date-rotated filenames for timezone and multiplexes log files
- - normalizes referrer domains, discards path
- - records referrer protocol
- - tidies up weirdly encoded referrer domains
- - discards IP address, command, status
- - anonymises logs by removal of IP address, precise day, precise referrer URL
+# How to use LogPPJ
 
-Also does some aggregation.
+LogPPJ has three stages, and once one stage is completed the input files for that stage can be removed. 
 
-Takes lines like:
+# Stages
 
-    123.123.123.123 HTTP:HDL "Mon Apr 01 12:00:01 EDT 2013" 1 1 34ms 10.1016/j.ijoa.2009.01.009 "200:0.na/10.1016" "http://example.com"
+Output is in one of two formats:
 
-And turns them into:
+ - `.csv` - normal CSV with dates as first column and other values as other series
+ - `.csv-chunk` - many CSV tables in one file, separated by blank spaces. First line of each is the header line that identifies that chunk. For `day-domain.csv-chunks` the header line would be the domain.
 
-    2013-04-01  10.1016/j.ijoa.2009.01.009  H example.com
+## 1: Pre-process log files
 
-For supervised R&D use!
+Log files come from CNRI and look something like `access_log_201501_ec2.gz`. They correspond *almost* to the given month, but the servers are in arbitrary timezones, so there's often some spill into the month before or after. When the `preprocess` command is run the log files are converted into the `processed` format. Output files are not overwritten, but the all the input files are read every time.
 
-# To use
+Input: Gzipped CNRI log files in `/logs`, roughly corresponding to one month each. For Crossref, input is roughly 100GB per year. Input file format is one entry per resolution.
 
-Have a load of log files in gzip format, named like `access_log*.gz`. Have a directory to put processed log files into, empty or otherwise. Output files won't be overwritten. The processed files will be named after the month of the data in them, and multiple input log files for a given time period will be merged. Note that one input log file, nominally for one month, may not correspond exactly to that month. Thus small file one side or the other of the input log file may be created, of the order of 1000 lines or 50kb. If you want the processed log file for March, you will also need February and April for best results. **Existing processed log files will not be overwritten** so if you do have a small spilled file as a result of a previous run, you should delete it first.
+Output: Gzipped processed files in `/processed` corresponding *exactly* to one month per file. Output is roughly 30GB per year. Output format is one entry per resolution, tab-separated:
 
-Requires Java 1.8.
+    date        doi                             code  full domain name        subdomain  domain
+    2015-01-01  10.1016/j.jcrimjus.2010.04.019  H     sfx.carli.illinois.edu  sfx.carli  illinois.edu
 
-Compile:
-
-    ant jar
-
-Run:
-
-    java -jar dist/Main.jar pp /Users/jwass/data/logs /Users/jwass/data/logs-processed
-
-When developing:
-
-    ant run -Darg1=pp -Darg1=/Users/jwass/data/logs -Darg1=/Users/jwass/data/logs-processed
-
-Look at the output, it may contain something you're interested in. A log message is shown every million lines processed. Unparsable referrers are logged, which you may want to adjust the code to process.
-
-# Output format
-
-    «YYYY-MM-DD in UTC» «DOI» «code» «referring domain»
-
-The referrer is sent by some browsers. It is the URL that the user was on when they clicked the DOI. In theory. In practice there is some variation, as any string could be sent. The following referrer types are defined:
+Code classifies the refferer type. It is one of:
 
  -  `H` for HTTP protocol
  -  `S` for HTTPS protocol
@@ -58,78 +34,74 @@ The referrer is sent by some browsers. It is the URL that the user was on when t
  -  `N` for no information.
  -  `W` for weird (e.g. readcube)
 
-Some "W" types may be accompanied by a special domain:
+Hostname can be `unknown.special` to represent an unknown domain.
 
- - `readcube.special` for Readcube app. Code: `W`.
- - `local.special` for a locally saved file. Code: `L`.
- - `unknown.special` for not supplied (because every line needs some kind of referrer). Code: `U`.
+Weirdnesses: 
 
-# Stats
+ - Dates are in local timezones, so a log file for Feburary may contain dates from January or March UTC. 
+ - Log files are found in at least 2 different formats, one missing referrers.
+ - Dates are round in at least 3 different formats.
+ - Refferers are up to the browser. So all kinds of weird stuff is found in there (take a look at `Parser.java` for examples).
 
-Over the first two months of 2016, :
 
-Input
- - 16 GB input in compressed log files
- - 611292202 lines = 600 million
- - 75902538942 characters ~= 75 GB
 
-Process on my laptop (Macbook Pro 2015, 3.1GHz, 16GB RAM)
- - runs in 126 minutes = 20 hours
- - produces 22 GB of uncompressed output
- - produces 66 MB of spill-over into the next month
- - 71376007 failed lines = 11%
+## 2: Aggregate processed files
 
-# Issues
+The processed log files, which correspond to one per month, are aggregated to count various features. This creates an output file, one per month per type.
 
-Not all lines parse smoothly. In first 2 months of 2016 XX failed to parse, which is XX percent. This can be due to corrupted logs, DOIs with spaces in (there's no way to recover from this) or odd unrecognised events on the log.
+Input: Gzipped processed files in `/processed`
 
-The time format doesn't seem to conform to any international standard. Timezones names are ambigious and mappings are therefore hardcoded. Different standards are used in different files.
+Output: CSV chunk files in `/aggregated` that look like `2015-01-day-code.csv-chunks`. The output is small, of the over of 100MB for Crossref. 
 
-Unrecognised referrers are logged for possible adjustment of handling in code. Most are no-hopers. All other errors deliberately cause a crash.
+CSV Chunk files have a header line followed by date,count CSV lines followed by a blank line. The types of data are currently:
 
-Lines show up like this, with just the prefix with no clear explanation. From `access_log_201601_ec2`.
+ - `code`, referrer code, defined above
+ - `fulldomain`, the full domain, e.g. `en.wikipedia.org`
+ - `domain`, the effective top level domain, e.g. `wikipedia.org`
 
-    123.65.221.28 HTTP:HDL "2016-01-08 14:25:28.842Z" 1 100 187ms 10.1186/ "" "http://dx.doi.org/10.1186/"
+## 3: Analysis
 
-# Further reading
+The aggreated files are combined into usable outputs, stored in `/analysis`. This a loosely defined stage, but where aggregated files are per month, analysis output files refer to 'all time'. Files are always over-written, but this stage is the cheapest (under a minute for a year's input).
+
+ - `day-code.csv` - a big table of referrer codes per day. Codes are headers. One table because set of codes is known and small.
+ - `day-domain.csv-chunks` - CSV chunks of count per day, one per domain (e.g. `wikiedia.org`). Chunks because the set of domains is unknown and large.
+ - `day-top-10-domains.csv` - a big table of the top 10 domains per day. More than 10 columns because it takes the union of all domains that were in the top 10 on any day.
+ - `month-code.csv` - a big table of referrer codes per month.
+ - `month-top-10-domains.csv` - as `day-top-10-domains.csv` per month
+ 
+# How to use it
+
+ - Make sure Java 1.8 and ant are installed.
+ - Run `ant jar`
+
+Then:
+
+  1. Put at least 3 months' log files in `/path/to/base/dir/logs`
+  2. Run `java -jar dist/Main.jar process /path/to/base/dir` to parse those log files
+  3. Run `java -jar dist/Main.jar aggregate /path/to/base/dir`
+  4. Run `java -jar dist/Main.jar analyze /path/to/base/dir`
+  5. Enjoy output in `/path/to/base/dir/analyzed`
+  6. If more log files come in:
+    1. Put new month's log files in in `/path/to/base/dir/logs`
+    2. Remove log files you've already processed. Remember to keep one month either side of the one you're intersted in.
+    3. Remove spill-over files from `/path/to/base/dir/processed` for partial months
+
+Note: 
+
+ - Always include a month either side of the month you're interested in because of timezone spillover.
+ - Processed files aren't overwritten, so delete relevant files in `/processed` if they exist. NB last month's spill-over files.
+ - Once a month has been processed, you can remove the input log file, but remember if you want to process last month's log files you'll need to have kept the files from the month before and after it.
+ - Aggregated files aren't overwritten. You can run the `aggregated` command at any time and it will only recalculate the data that hasn't already been calculated.
+ - Don't delete aggregated files, they're all needed for the next stage.
+
+# Development
+
+Can be run directly by ant: `time ant run  -Darg0=analyze -Darg1=/data-in/logs`
+
+# Effective TLD
+
+Referrer domains (when they are known), e.g. "http://en.wikipedia.org" are split into domain, e.g. "wikipedia.org" and subdomain, e.g. "en". These are represented in the output as "full domain", e.g. "en.wikipedia.org" and "domain", e.g. "wikipedia.org". This is done using the `public_suffix_list.dat` which is included here and available at `https://publicsuffix.org/list/public_suffix_list.dat`. This list is useful rather than precise. It will split "abc.def.co.uk" into "abc.co.uk", but also has some convenience entries, so that e.g. "github.io" and "blogspot.com" are treated as eTLDs. This should be borne in mind.
+
+# See also
 
 The voracious reader might want to consult [Handle manual](http://www.handle.net/tech_manual/HN_Tech_Manual_8.pdf), section 3.7.1 . 
-
-
-# Failing examples
-
-## Failing referrers
-
-Examples of failures. These happen less than 10 times each so there's no point writing exceptions for them.
-
-    perComponent5.prototype.GetFramesCollectionLen%20(jar:file:///C:/Program%20Files%20(x86)/Internet%20Download%20Manager/idmmzcc2.xpi!/components/idmhelper5.js:173)
-    
-    read:http://especiais.gazetaonline.com.br/bomba/
-      
-    %C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5%C3%A5IDMCCHelperComponent5.prototype.GetLinks%20(jar:file:///C:/Program%20Files%20(x86)/Internet%20Download%20Manager/idmmzcc2.xpi!/components/idmhelper5.js:367)
-
-
-# Aggregation
-
-Running with the `aggregate` command produces the following aggregations:
-
- - count per DOI per day
-
-    time ant run -Darg0=aggregate -Darg1=/Users/jwass/data/logs-2016-processed -Darg2=/Users/jwass/data/logs-2016-aggregated
-
-Output is an unsorted file of entries. Generally formatted as [«thing of interest», «date», «count»]. So if we wanted we could easliy sort by DOI then date.
-
-## DOI per day
-
-File extension YYYY-MM-doi. Lines of the format:
-
-    DOI YYYY-MM-DD count
-
-Counts aren't included if they're lower than 10.
-
-## Referrer code per day
-
-Shows use of various protocols, e.g. HTTPS, over time. File extension YYYY-MM-referrer-code. Lines of the format:
-
-    Code YYYY-MM-DD count
-
