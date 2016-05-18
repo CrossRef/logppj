@@ -18,11 +18,13 @@ import java.util.SortedMap;
 import java.util.LinkedList;
 import java.util.Collection;
 
+// We're into 32-bit int overflow territory with some of the count sums.
+
 class DateCountEntry implements Comparable<DateCountEntry> {
   String entryName;
-  Integer count;
+  Long count;
 
-  public Integer getCount() {
+  public Long getCount() {
     return this.count;
   }
 
@@ -31,10 +33,10 @@ class DateCountEntry implements Comparable<DateCountEntry> {
   }
 
   public int compareTo(DateCountEntry other) {
-    return this.count.compareTo(other.getCount());
+    return Long.compare(this.count, other.getCount());
   }
 
-  DateCountEntry(String entryName, Integer count) {
+  DateCountEntry(String entryName, Long count) {
     this.entryName = entryName;
     this.count = count;
   }
@@ -45,19 +47,18 @@ class DateCountEntry implements Comparable<DateCountEntry> {
 }
 
 class DateEntry {
-  Integer limit;
+  int limit;
   String date;
-  Integer smallestValue = 0;
+  Long smallestValue = 0L;
   List<DateCountEntry> entries;
 
-
-  public DateEntry(Integer limit, String date) {
+  public DateEntry(int limit, String date) {
     this.limit = limit;
     this.date = date;
     this.entries = new ArrayList<>();
   }
 
-  public void add(String entryName, Integer count) {
+  public void add(String entryName, Long count) {
     this.entries.add(new DateCountEntry(entryName, count));
     
     // Expand and vacuuum.
@@ -66,9 +67,9 @@ class DateEntry {
     }
   }
 
-  public Collection<String> topNEntries(Integer n) {
+  public Collection<String> topNEntries(int n) {
     Collections.sort(this.entries, Collections.reverseOrder());
-    Collection<String> entryNames = new ArrayList<String>(n);
+    Collection<String> entryNames = new ArrayList<String>();
 
     for (DateCountEntry entry: this.entries.subList(0, n)) {
       entryNames.add(entry.getEntryName());
@@ -77,8 +78,8 @@ class DateEntry {
     return entryNames;
   }
 
-  public Map<String, Integer> getEntriesDictionary() {
-    Map<String, Integer> map = new HashMap<>();
+  public Map<String, Long> getEntriesDictionary() {
+    Map<String, Long> map = new HashMap<>();
 
     for (DateCountEntry entry: this.entries) {
       map.put(entry.getEntryName(), entry.getCount());
@@ -87,16 +88,15 @@ class DateEntry {
     return map;
   }
 
-  public void vacuum(Integer limitTo) {
+  public void vacuum(int limitTo) {
     Collections.sort(this.entries, Collections.reverseOrder());
     this.entries = this.entries.subList(0, limitTo);
   }
 }
 
-
 public abstract class TopNDomainsTableAbstractStrategy implements AnalyzerStrategy, ChunkParserCallback {
   // All dates we've seen.
-  private int counter;
+  private long counter = 0;
 
   private ChunkParser chunkParser = new ChunkParser(this);
 
@@ -162,13 +162,32 @@ public abstract class TopNDomainsTableAbstractStrategy implements AnalyzerStrate
       topEntryNames.addAll(dateEntry.getValue().topNEntries(this.finalN()));
     }
 
+    // Now sort them by their all-time total.
+    // Collect totals.
+    Map<String, Long> topDomainSums = new HashMap<>();
+    for (Map.Entry<String, DateEntry> dateEntry : this.dateEntries.entrySet()) {
+      Map<String, Long> domainEntries = dateEntry.getValue().getEntriesDictionary();
+
+      for (String domain : topEntryNames) {
+        topDomainSums.put(domain, topDomainSums.getOrDefault(domain, 0L) + domainEntries.getOrDefault(domain, 0L));
+      }
+    }
+
+    // Sort domains by their totals.
+    List<WeightedString> sortedDomains = new ArrayList<>();
+    for (Map.Entry<String, Long> domainSum : topDomainSums.entrySet()) {
+      sortedDomains.add(new WeightedString(domainSum.getKey(), domainSum.getValue()));
+    }
+    Collections.sort(sortedDomains, Collections.reverseOrder());
+
     // Write sorted domains header
     this.outputFile.write("Date");
     this.outputFile.write(",");
 
-    Iterator<String> entryNamesIterator = topEntryNames.iterator();
+    // Iterate over the domains sorted by total.
+    Iterator<WeightedString> entryNamesIterator = sortedDomains.iterator();
     while(entryNamesIterator.hasNext()) {
-      String entryName = entryNamesIterator.next();
+      String entryName = entryNamesIterator.next().getValue();
       this.outputFile.write(entryName);
 
       if (entryNamesIterator.hasNext()) {
@@ -183,19 +202,19 @@ public abstract class TopNDomainsTableAbstractStrategy implements AnalyzerStrate
       Map.Entry<String, DateEntry> dateEntryName = dateEntriesIterator.next();
       String date = dateEntryName.getKey();
       DateEntry entry = dateEntryName.getValue();
-      Map<String, Integer> entryCounts = entry.getEntriesDictionary();
+      Map<String, Long> entryCounts = entry.getEntriesDictionary();
       
       this.outputFile.write(date);
       this.outputFile.write(",");
 
-      entryNamesIterator = topEntryNames.iterator();
+      entryNamesIterator = sortedDomains.iterator();
       while(entryNamesIterator.hasNext()) {
-        String entryName = entryNamesIterator.next();
+        String entryName = entryNamesIterator.next().getValue();
 
-        Integer count = entryCounts.get(entryName);
+        Long count = entryCounts.get(entryName);
         if (count == null) {
-          System.err.format("ERROR failed to fetch %s on %s. Increase preN.\n", entryName, date);
-          count = 0;
+          // System.err.format("ERROR failed to fetch %s on %s. Increase preN.\n", entryName, date);
+          count = 0L;
         }
         
         this.outputFile.write(count.toString());
@@ -235,7 +254,7 @@ public abstract class TopNDomainsTableAbstractStrategy implements AnalyzerStrate
 
     String[] dateCount = line.split(",");
     String date = dateCount[0];
-    Integer count = Integer.parseInt(dateCount[1]);
+    Long count = Long.parseLong(dateCount[1]);
 
     DateEntry entry = this.dateEntries.get(date);
     if (entry == null) {
