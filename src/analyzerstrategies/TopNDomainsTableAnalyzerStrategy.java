@@ -8,13 +8,15 @@ import java.io.Writer;
 public class TopNDomainsTableAnalyzerStrategy extends TopNDomainsTableAbstractStrategy {
   // Used to recognise analyzer files.
   private DateProjector inputDateProjector;
+  private int n;
 
-  public TopNDomainsTableAnalyzerStrategy(DateProjector inputDateProjector) {
+  public TopNDomainsTableAnalyzerStrategy(int n, DateProjector inputDateProjector) {
     this.inputDateProjector = inputDateProjector;
+    this.n = n;
   }
 
   public int finalN() {
-    return 10;
+    return this.n;
   }
 
   public String getInputFileRegex() {
@@ -22,7 +24,7 @@ public class TopNDomainsTableAnalyzerStrategy extends TopNDomainsTableAbstractSt
   }
 
   public int preN() {
-    return 1000;
+    return n * 1000;
   }
 
   public String fileName() {

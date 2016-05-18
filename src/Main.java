@@ -25,8 +25,10 @@ public class Main {
       new FullDomainAnalyzerStrategy(new TruncateMonth()),
       new DomainAnalyzerStrategy(new TruncateDay()),
       
-      new TopNDomainsTableAnalyzerStrategy(new TruncateDay()),
-      new TopNDomainsTableAnalyzerStrategy(new TruncateMonth())
+      new TopNDomainsTableAnalyzerStrategy(20, new TruncateDay()),
+      new TopNDomainsTableAnalyzerStrategy(10, new TruncateMonth()),
+      new TopNDomainsTableAnalyzerStrategy(100, new TruncateDay()),
+      new TopNDomainsTableAnalyzerStrategy(100, new TruncateMonth())
     };
 
     try {
