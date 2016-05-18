@@ -3,15 +3,24 @@ package logpp;
 import java.io.File;
 import logpp.aggregatorstrategies.*;
 import logpp.analyzerstrategies.*;
+import java.io.FileNotFoundException;
+import java.io.IOException;
 
 import java.util.Arrays;
 
 public class Main {
 
   // Run all the analyses.
-  static void analyze(String workingDir)  {
+  static void analyze(String workingDir) throws FileNotFoundException, IOException  {
     String inputPath = workingDir + "/aggregated";
     String outputPath = workingDir + "/analyzed";
+
+    // Files that contain ignored domain names. May or may not exist.
+    String ignoreDomainPath = workingDir + "/ignore-domain-names.txt";
+    String ignoreFullDomainPath = workingDir + "/ignore-full-domain-names.txt";
+
+    // A domain ignorer to exclude ignored domains. Is able to cope if the files don't exist.
+    DomainIgnorer domainIgnorer = new DomainIgnorer(ignoreDomainPath, ignoreFullDomainPath);
 
     File input = new File(inputPath);
     File output = new File(outputPath);
@@ -25,10 +34,17 @@ public class Main {
       new FullDomainAnalyzerStrategy(new TruncateMonth()),
       new DomainAnalyzerStrategy(new TruncateDay()),
       
-      new TopNDomainsTableAnalyzerStrategy(20, new TruncateDay()),
-      new TopNDomainsTableAnalyzerStrategy(10, new TruncateMonth()),
-      new TopNDomainsTableAnalyzerStrategy(100, new TruncateDay()),
-      new TopNDomainsTableAnalyzerStrategy(100, new TruncateMonth())
+      // Top N once for all things
+      new TopNDomainsTableAnalyzerStrategy(20, new TruncateDay(), null),
+      new TopNDomainsTableAnalyzerStrategy(10, new TruncateMonth(), null),
+      new TopNDomainsTableAnalyzerStrategy(100, new TruncateDay(), null),
+      new TopNDomainsTableAnalyzerStrategy(100, new TruncateMonth(), null),
+
+      // And once with ignored domains. Even if the files aren't present, referrers like doi.org will be removed.
+      new TopNDomainsTableAnalyzerStrategy(20, new TruncateDay(), domainIgnorer),
+      new TopNDomainsTableAnalyzerStrategy(10, new TruncateMonth(), domainIgnorer),
+      new TopNDomainsTableAnalyzerStrategy(100, new TruncateDay(), domainIgnorer),
+      new TopNDomainsTableAnalyzerStrategy(100, new TruncateMonth(), domainIgnorer),
     };
 
     try {
@@ -94,7 +110,7 @@ public class Main {
     }
   }
 
-  public static void main(String[] argv) {
+  public static void main(String[] argv) throws FileNotFoundException, IOException {
     System.out.println("Run with " + Arrays.toString(argv));
 
     if (argv.length < 2) {

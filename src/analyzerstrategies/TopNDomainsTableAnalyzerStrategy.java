@@ -10,7 +10,10 @@ public class TopNDomainsTableAnalyzerStrategy extends TopNDomainsTableAbstractSt
   private DateProjector inputDateProjector;
   private int n;
 
-  public TopNDomainsTableAnalyzerStrategy(int n, DateProjector inputDateProjector) {
+
+  public TopNDomainsTableAnalyzerStrategy(int n, DateProjector inputDateProjector, DomainIgnorer ignorer) {
+    super(ignorer);
+
     this.inputDateProjector = inputDateProjector;
     this.n = n;
   }
@@ -28,6 +31,10 @@ public class TopNDomainsTableAnalyzerStrategy extends TopNDomainsTableAbstractSt
   }
 
   public String fileName() {
-    return String.format("%s-top-%d-domains.csv", this.inputDateProjector.getName(), this.finalN());
+    if (this.ignorer == null) {
+      return String.format("%s-top-%d-all-domains.csv", this.inputDateProjector.getName(), this.finalN());
+    } else {
+      return String.format("%s-top-%d-ignored-domains.csv", this.inputDateProjector.getName(), this.finalN());
+    }
   }
 }

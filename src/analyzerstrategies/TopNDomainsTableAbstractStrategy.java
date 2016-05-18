@@ -104,6 +104,7 @@ public abstract class TopNDomainsTableAbstractStrategy implements AnalyzerStrate
   private SortedMap<String, DateEntry> dateEntries = new TreeMap<>();
 
   // Name of current chunk.
+  // Can be null if we're ignoring the current chunk.
   private String currentChunkHeader;
 
   public abstract String fileName();
@@ -111,6 +112,13 @@ public abstract class TopNDomainsTableAbstractStrategy implements AnalyzerStrate
   public abstract String getInputFileRegex();
 
   Writer outputFile;
+
+  // Used to decide if a domain should be ignored. Can be null.
+  protected DomainIgnorer ignorer;
+
+  public TopNDomainsTableAbstractStrategy(DomainIgnorer ignorer) {
+    this.ignorer = ignorer;
+  }
 
   public void assignOutputFile(Writer writer) {
     this.outputFile = writer;
@@ -203,11 +211,23 @@ public abstract class TopNDomainsTableAbstractStrategy implements AnalyzerStrate
 
   // ChunkParserCallback
   public void header(String name) {
-    this.currentChunkHeader = name;
+    // If we have an ignorer in operation, ignore if it wants us to. 
+    // If there isn't one, set it.
+    if (this.ignorer != null && this.ignorer.ignore(name)) {
+      this.currentChunkHeader = null;
+    } else {
+      this.currentChunkHeader = name;
+    }
   }
 
   // ChunkParserCallback
   public void line(String line) { 
+
+    // If we're ignoring the chunk header, do nothing.
+    if (this.currentChunkHeader == null) {
+      return;
+    }
+
     this.counter++;
     if (this.counter % 1000000 == 0) {
       System.out.println(counter);
