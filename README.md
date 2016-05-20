@@ -73,7 +73,11 @@ You can grab a copy of the above files for Crossref from `http://destinations.la
  - `month-code.csv` - a big table of referrer codes per month.
  - `month-top-10-unfiltered-domains.csv` - as `day-top-10-domains.csv` per month
  - `month-top-10-filtered-domains.csv` - as `day-top-10-domains.csv` per month, excluding filtered domains.
- 
+
+# 4: Distribtion
+
+The analysis files are chopped up for use downstream, for example Chronograph. This stage doesn't get you anything except chopped up files. See `Main.java`.
+
 # How to use it
 
  - Make sure Java 1.8 and ant are installed.

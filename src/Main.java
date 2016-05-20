@@ -71,6 +71,46 @@ public class Main {
     }
   }
 
+  // Run all the distribution tasks.
+  static void distribute(String workingDir) throws FileNotFoundException, IOException  {
+    String inputPath = workingDir + "/analyzed";
+    String outputPath = workingDir + "/distribute";
+
+    System.out.format("Process %s to %s\n", inputPath, outputPath);
+
+    DistributerStrategy[] strategies = new DistributerStrategy[] {
+      // For the chunk files, split by a hash.
+      new ChunkHashDistributerStrategy(inputPath, outputPath, "day-filtered-domain.csv-chunks"),
+      new ChunkHashDistributerStrategy(inputPath, outputPath, "day-filtered-domain.csv-chunks"),
+      new ChunkHashDistributerStrategy(inputPath, outputPath, "month-filtered-fulldomain.csv-chunks"),
+
+      // And copy the same files anyway, someone might want them.
+      new CopyDistributerStrategy(inputPath, outputPath, "day-filtered-domain.csv-chunks"),
+      new CopyDistributerStrategy(inputPath, outputPath, "day-filtered-domain.csv-chunks"),
+      new CopyDistributerStrategy(inputPath, outputPath, "month-filtered-fulldomain.csv-chunks"),
+      
+      // CSV files are ready to use, just copy over.
+      // We don't distribute 'all' domain files like `day-top-100-all-domains.csv`, only the filtered ones.
+      new CopyDistributerStrategy(inputPath, outputPath, "day-top-20-filtered-domains.csv"),
+      new CopyDistributerStrategy(inputPath, outputPath, "day-top-100-filtered-domains.csv"),
+      new CopyDistributerStrategy(inputPath, outputPath, "month-code.csv"),
+      new CopyDistributerStrategy(inputPath, outputPath, "month-top-10-filtered-domains.csv"),
+      new CopyDistributerStrategy(inputPath, outputPath, "month-top-10-unfiltered-domains.csv"),
+      new CopyDistributerStrategy(inputPath, outputPath, "month-top-100-filtered-domains.csv")
+    };
+
+    try {
+      for (DistributerStrategy strategy: strategies) {
+        System.out.format("Distribute with strategy: %s \n", strategy.toString());
+        strategy.run();
+        System.out.format("Finished analyze with strategy: %s \n", strategy.toString());
+      }
+    } catch (Exception e) {
+      System.err.println("Error:");
+      e.printStackTrace();
+    }
+  }
+
   // Run all the aggregations.
   static void aggregate(String workingDir)  {
     String inputPath = workingDir + "/processed";
@@ -137,6 +177,7 @@ public class Main {
       case "process": preprocess(workingDir); break;
       case "aggregate": aggregate(workingDir); break;
       case "analyze": analyze(workingDir); break;
+      case "distribute": distribute(workingDir); break;
     }
   }
 }
