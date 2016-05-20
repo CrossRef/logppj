@@ -113,11 +113,11 @@ public abstract class TopNDomainsTableAbstractStrategy implements AnalyzerStrate
 
   Writer outputFile;
 
-  // Used to decide if a domain should be ignored. Can be null.
-  protected DomainIgnorer ignorer;
+  // Used to decide if a domain should be filterd out.
+  protected Filter filter;
 
-  public TopNDomainsTableAbstractStrategy(DomainIgnorer ignorer) {
-    this.ignorer = ignorer;
+  public TopNDomainsTableAbstractStrategy(Filter filter) {
+    this.filter = filter;
   }
 
   public void assignOutputFile(Writer writer) {
@@ -230,12 +230,10 @@ public abstract class TopNDomainsTableAbstractStrategy implements AnalyzerStrate
 
   // ChunkParserCallback
   public void header(String name) {
-    // If we have an ignorer in operation, ignore if it wants us to. 
-    // If there isn't one, set it.
-    if (this.ignorer != null && this.ignorer.ignore(name)) {
-      this.currentChunkHeader = null;
-    } else {
+    if (this.filter.keep(name)) {
       this.currentChunkHeader = name;
+    } else {
+      this.currentChunkHeader = null;
     }
   }
 

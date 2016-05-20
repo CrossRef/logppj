@@ -16,6 +16,9 @@ import java.util.Collections;
 public abstract class ChunkGlommerAbstractStrategy implements AnalyzerStrategy, ChunkParserCallback {
   private Partitioner partitioner = new Partitioner(this.getNumPartitions());
 
+  // Filter headers.
+  protected Filter filter;
+
   // Makes callbacks on this.
   private ChunkParser chunkParser = new ChunkParser(this);
 
@@ -39,6 +42,10 @@ public abstract class ChunkGlommerAbstractStrategy implements AnalyzerStrategy, 
   private long chunkCount = 0;
 
   Writer outputFile;
+
+  public ChunkGlommerAbstractStrategy(Filter filter) {
+    this.filter = filter;
+  }
 
   public void assignOutputFile(Writer writer) {
     this.outputFile = writer;
@@ -95,10 +102,14 @@ public abstract class ChunkGlommerAbstractStrategy implements AnalyzerStrategy, 
 
   // ChunkParserCallback
   public void header(String name) {
-    this.currentChunkHeader = name;
-    this.chunkCount++;
-
-    this.interestedInChunk = (this.partitioner.partition(name) == this.currentPartitionNumber);
+    if (this.filter.keep(name)) {
+      this.currentChunkHeader = name;
+      this.chunkCount++;
+      this.interestedInChunk = (this.partitioner.partition(name) == this.currentPartitionNumber);
+    } else {
+      this.currentChunkHeader = null;
+      this.interestedInChunk = false;
+    }
   }
 
   // ChunkParserCallback

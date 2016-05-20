@@ -61,17 +61,18 @@ CSV Chunk files have a header line followed by date,count CSV lines followed by 
 
 The aggreated files are combined into usable outputs, stored in `/analysis`. This a loosely defined stage, but where aggregated files are per month, analysis output files refer to 'all time'. Files are always over-written, but this stage is the cheapest (under a minute for a year's input).
 
-The raw data is useful, but sometimes we want to exclude certain domains (e.g. data fed into Crossref Chronograph). In this case you can put the list of domains and/or subdomains in `ignore-domain-names.txt` and `ignore-full-domain-names.txt` in `/path/to/base/dir/`. Logppj automatically ignores domains like 'unknown.special' and 'doi.org' in the 'ingored' analyzer output files.
+The raw data is useful, but sometimes we want to exclude certain domains (e.g. data fed into Crossref Chronograph). In this case you can put the list of domains and/or subdomains in `filter-domain-names.txt` and `filter-full-domain-names.txt` in `/path/to/base/dir/`. Logppj automatically ignores domains like 'unknown.special' and 'doi.org' in the filtered analyzer output files.
 
 You can grab a copy of the above files for Crossref from `http://destinations.labs.crossref.org/data/full-domain-names.txt` and `http://destinations.labs.crossref.org/data/domain-names.txt`.
 
  - `day-code.csv` - a big table of referrer codes per day. Codes are headers. One table because set of codes is known and small.
- - `day-domain.csv-chunks` - CSV chunks of count per day, one per domain (e.g. `wikiedia.org`). Chunks because the set of domains is unknown and large.
- - `day-top-10-all-domains.csv` - a big table of the top 10 domains per day. More than 10 columns because it takes the union of all domains that were in the top 10 on any day.
- - `day-top-10-ignored-domains.csv` - a big table of the top 10 domains per day. More than 10 columns because it takes the union of all domains that were in the top 10 on any day. Ignores excluded domains.
+ - `day-domain-filtered.csv-chunks` - CSV chunks of count per day, one per domain (e.g. `wikiedia.org`). Chunks because the set of domains is unknown and large.
+ - `day-domain-unfiltered.csv-chunks` - CSV chunks of count per day, one per domain (e.g. `wikiedia.org`). Chunks because the set of domains is unknown and large. Filters excluded domains.
+ - `day-top-10-unfiltered-domains.csv` - a big table of the top 10 domains per day. More than 10 columns because it takes the union of all domains that were in the top 10 on any day.
+ - `day-top-10-filtered-domains.csv` - a big table of the top 10 domains per day. More than 10 columns because it takes the union of all domains that were in the top 10 on any day. Filters excluded domains.
  - `month-code.csv` - a big table of referrer codes per month.
- - `month-top-10-all-domains.csv` - as `day-top-10-domains.csv` per month
- - `month-top-10-ignored-domains.csv` - as `day-top-10-domains.csv` per month, excluding ignored domains.
+ - `month-top-10-unfiltered-domains.csv` - as `day-top-10-domains.csv` per month
+ - `month-top-10-filtered-domains.csv` - as `day-top-10-domains.csv` per month, excluding filtered domains.
  
 # How to use it
 
