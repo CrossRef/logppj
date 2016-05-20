@@ -47,13 +47,13 @@ public class Main {
       new DomainAnalyzerStrategy(new TruncateDay(), domainFilter),
       
       // Top N once with unfiltered domains.
-      new TopNDomainsTableAnalyzerStrategy(20, new TruncateDay(), new EverythingFilter()),
+      new TopNDomainsTableAnalyzerStrategy(10, new TruncateDay(), new EverythingFilter()),
       new TopNDomainsTableAnalyzerStrategy(10, new TruncateMonth(), new EverythingFilter()),
       new TopNDomainsTableAnalyzerStrategy(100, new TruncateDay(), new EverythingFilter()),
       new TopNDomainsTableAnalyzerStrategy(100, new TruncateMonth(), new EverythingFilter()),
 
       // And once with filtered domains. Even if the files aren't present, referrers like doi.org will be removed.
-      new TopNDomainsTableAnalyzerStrategy(20, new TruncateDay(), domainFilter),
+      new TopNDomainsTableAnalyzerStrategy(10, new TruncateDay(), domainFilter),
       new TopNDomainsTableAnalyzerStrategy(10, new TruncateMonth(), domainFilter),
       new TopNDomainsTableAnalyzerStrategy(100, new TruncateDay(), domainFilter),
       new TopNDomainsTableAnalyzerStrategy(100, new TruncateMonth(), domainFilter),
@@ -91,9 +91,10 @@ public class Main {
       
       // CSV files are ready to use, just copy over.
       // We don't distribute 'all' domain files like `day-top-100-all-domains.csv`, only the filtered ones.
-      new CopyDistributerStrategy(inputPath, outputPath, "day-top-20-filtered-domains.csv"),
+      new CopyDistributerStrategy(inputPath, outputPath, "day-top-10-filtered-domains.csv"),
       new CopyDistributerStrategy(inputPath, outputPath, "day-top-100-filtered-domains.csv"),
       new CopyDistributerStrategy(inputPath, outputPath, "month-code.csv"),
+      new CopyDistributerStrategy(inputPath, outputPath, "day-code.csv"),
       new CopyDistributerStrategy(inputPath, outputPath, "month-top-10-filtered-domains.csv"),
       new CopyDistributerStrategy(inputPath, outputPath, "month-top-10-unfiltered-domains.csv"),
       new CopyDistributerStrategy(inputPath, outputPath, "month-top-100-filtered-domains.csv")
