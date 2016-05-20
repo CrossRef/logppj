@@ -71,7 +71,7 @@ class DateEntry {
     Collections.sort(this.entries, Collections.reverseOrder());
     Collection<String> entryNames = new ArrayList<String>();
 
-    for (DateCountEntry entry: this.entries.subList(0, n)) {
+    for (DateCountEntry entry: this.entries.subList(0, Integer.min(n, this.entries.size()))) {
       entryNames.add(entry.getEntryName());
     }
 
