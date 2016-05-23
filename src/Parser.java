@@ -90,13 +90,17 @@ public  class Parser {
     this.outputDirectory = outputDirectory;
   }
 
-  // Parse referrer string into [code, whole-domain, subdomains, domain]
+  // Parse referrer string into [code, whole-domain, subdomains, domain, path]
   // See consts above for code definitions.
   // Always return, sometimes empty string for domain.
   private String[] parseReferrer(String referrer) {
     String code = CODE_NO_INFO;
+    
     // If there isn't one, use a placeholder.
     String host = UNKNOWN_DOMAIN;
+
+    // Path mostly empty.
+    String path = "";
 
     // Most common is empty string.
     if (referrer.length() > 1) {
@@ -129,6 +133,7 @@ public  class Parser {
         URL url = new URL(referrer);
         host = url.getHost();
         String protocol = url.getProtocol();
+        path = url.getPath();
 
         // In order of likelihood. All of these have been observed!
         // https://docs.oracle.com/javase/8/docs/technotes/guides/language/strings-switch.html
@@ -191,6 +196,7 @@ public  class Parser {
               URL url = new URL("http://" + referrer);
               code = CODE_HTTP;
               host = url.getHost();
+              path = url.getPath();
             } catch (MalformedURLException innerException) {
               // If we're here there's not much hope!
               System.out.println("ERROR " + innerException.toString());
@@ -209,7 +215,8 @@ public  class Parser {
     }
 
     String[] domainParts = this.etld.getParts(host);
-    return new String[] {code, host, domainParts[0], domainParts[1]};
+
+    return new String[] {code, host, domainParts[0], domainParts[1], path};
   }
 
   // Return the file handle.
@@ -255,6 +262,9 @@ public  class Parser {
 
     // Total files that were processed.
     int totalFiles = 0;
+
+    // Number of lines where input was malformatted, skipping.
+    int malformedSkips = 0;
 
     // Keep track of the most current year month string. Not monotonic, could jump anywhere.
     String previousYearMonth  = "";
@@ -337,8 +347,18 @@ public  class Parser {
             String referrerFullDomain = parsedReferrer[1];
             String referrerSubdomains = parsedReferrer[2];
             String referrerDomain = parsedReferrer[3];
+            String referrerPath = parsedReferrer[4];
 
-            // «YYYY-MM-DD in UTC» «DOI» «code» «referring domain»
+            if (yearMonthDay.contains("\t") ||
+                doi.contains("\t") ||
+                referrerCode.contains("\t") ||
+                referrerFullDomain.contains("\t") ||
+                referrerSubdomains.contains("\t") ||
+                referrerDomain.contains("\t") ||
+                referrerPath.contains("\t")) {
+              System.err.format("ERROR: Malformed input line: %s\n", line);
+              malformedSkips ++;
+            } else {
             outputFile.write(yearMonthDay);
             outputFile.write("\t");
             outputFile.write(doi);
@@ -350,14 +370,20 @@ public  class Parser {
             outputFile.write(referrerSubdomains);
             outputFile.write("\t");
             outputFile.write(referrerDomain);
+            outputFile.write("\t");
+            outputFile.write(referrerPath);
             outputFile.write("\n");
+          }
+
+            
+            
           }
 
           totalLines ++;
 
           // Every million lines. 
           if (totalLines % 1000000 == 0) {
-            System.out.format("Processed lines: %d, characters: %d, failed: %d, OpenURL: %d\n", totalLines, totalChars, failedLines, openUrlIgnores);
+            System.out.format("Processed lines: %d, characters: %d, failed: %d, OpenURL: %d, malformed skips: %d\n", totalLines, totalChars, failedLines, openUrlIgnores, malformedSkips);
             
             // This solves weird flushing issues.
             System.out.println("");
@@ -372,7 +398,7 @@ public  class Parser {
       bufferedReader.close();
 
       totalFiles++;
-      System.out.format("Finished file! Processed lines: %d, characters: %d, failed: %d, OpenURL: %d\n", totalLines, totalChars, failedLines, openUrlIgnores);
+      System.out.format("Finished file! Processed lines: %d, characters: %d, failed: %d, OpenURL: %d, malformed skips: %d\n", totalLines, totalChars, failedLines, openUrlIgnores, malformedSkips);
     }
 
     for (Writer w: this.monthFiles.values()) {
