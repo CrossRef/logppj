@@ -98,12 +98,10 @@ public class Main {
       
       // CSV files are ready to use, just copy over.
       // We don't distribute 'all' domain files like `day-top-100-all-domains.csv`, only the filtered ones.
-      new CopyDistributerStrategy(inputPath, outputPath, "day-top-10-filtered-domains.csv"),
-      new CopyDistributerStrategy(inputPath, outputPath, "day-top-100-filtered-domains.csv"),
       new CopyDistributerStrategy(inputPath, outputPath, "month-code.csv"),
       new CopyDistributerStrategy(inputPath, outputPath, "day-code.csv"),
+      new CopyDistributerStrategy(inputPath, outputPath, "day-top-10-filtered-domains.csv"),
       new CopyDistributerStrategy(inputPath, outputPath, "month-top-10-filtered-domains.csv"),
-      new CopyDistributerStrategy(inputPath, outputPath, "month-top-10-unfiltered-domains.csv"),
       new CopyDistributerStrategy(inputPath, outputPath, "month-top-100-filtered-domains.csv")
     };
 
