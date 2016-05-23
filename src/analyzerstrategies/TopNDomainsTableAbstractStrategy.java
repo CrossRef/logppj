@@ -262,4 +262,8 @@ public abstract class TopNDomainsTableAbstractStrategy implements AnalyzerStrate
 
     entry.add(this.currentChunkHeader, count);
   }
+
+  public void dispose() {
+    this.dateEntries = null;
+  }
 }

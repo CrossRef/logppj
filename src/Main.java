@@ -67,6 +67,8 @@ public class Main {
       for (AnalyzerStrategy strategy: strategies) {
         System.out.format("Analyze with strategy: %s \n", strategy.toString());
         analyzer.run(strategy);
+        // As each strategy is stateful and stays in the GC graph, allow it to let go of its data (which can be sizable).
+        strategy.dispose();
         System.out.format("Finished analyze with strategy: %s \n", strategy.toString());
       }
     } catch (Exception e) {

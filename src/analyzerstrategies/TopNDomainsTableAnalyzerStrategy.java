@@ -26,7 +26,7 @@ public class TopNDomainsTableAnalyzerStrategy extends TopNDomainsTableAbstractSt
   }
 
   public int preN() {
-    return n * 1000;
+    return n * 100;
   }
 
   public String fileName() {

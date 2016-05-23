@@ -28,4 +28,7 @@ public interface AnalyzerStrategy {
 
   // Write everything to the output file.
   void finish() throws IOException;
+
+  // Let go of unwanted memory. Object can't be used after this.
+  void dispose();
 }

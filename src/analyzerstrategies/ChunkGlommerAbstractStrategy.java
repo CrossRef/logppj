@@ -126,4 +126,8 @@ public abstract class ChunkGlommerAbstractStrategy implements AnalyzerStrategy, 
       this.collection.get(this.currentChunkHeader).add(line);
     }
   }
+
+  public void dispose() {
+    this.collection = null;
+  }
 }

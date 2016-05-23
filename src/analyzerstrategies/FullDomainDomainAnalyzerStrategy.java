@@ -66,4 +66,7 @@ public class FullDomainDomainAnalyzerStrategy implements AnalyzerStrategy, Chunk
     this.currentHeader = line;
   }
 
+  public void dispose() {
+    this.fulldomainDomain = null;
+  }
 }

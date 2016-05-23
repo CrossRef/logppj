@@ -126,4 +126,9 @@ public abstract class ChunkTableAbstractStrategy implements AnalyzerStrategy, Ch
 
     itemCounts.put(currentChunkHeader, dateCount[1]);
   }
+
+  public void dispose() {
+    this.dates = null;
+    this.headers = null;
+  }
 }
