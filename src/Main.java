@@ -53,13 +53,11 @@ public class Main {
       // Top N once with unfiltered domains.
       new TopNDomainsTableAnalyzerStrategy(10, new TruncateDay(), new EverythingFilter()),
       new TopNDomainsTableAnalyzerStrategy(10, new TruncateMonth(), new EverythingFilter()),
-      new TopNDomainsTableAnalyzerStrategy(100, new TruncateDay(), new EverythingFilter()),
       new TopNDomainsTableAnalyzerStrategy(100, new TruncateMonth(), new EverythingFilter()),
 
       // And once with filtered domains. Even if the files aren't present, referrers like doi.org will be removed.
       new TopNDomainsTableAnalyzerStrategy(10, new TruncateDay(), domainFilter),
       new TopNDomainsTableAnalyzerStrategy(10, new TruncateMonth(), domainFilter),
-      new TopNDomainsTableAnalyzerStrategy(100, new TruncateDay(), domainFilter),
       new TopNDomainsTableAnalyzerStrategy(100, new TruncateMonth(), domainFilter)
     };
 
