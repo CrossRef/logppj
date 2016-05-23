@@ -48,6 +48,7 @@ public class Main {
 
       new GroupedFullDomainsAnalyzerStrategy(new EverythingFilter()),
       new GroupedFullDomainsAnalyzerStrategy(domainFilter),
+      new FullDomainDomainAnalyzerStrategy(),
       
       // Top N once with unfiltered domains.
       new TopNDomainsTableAnalyzerStrategy(10, new TruncateDay(), new EverythingFilter()),
@@ -92,7 +93,8 @@ public class Main {
       new CopyDistributerStrategy(inputPath, outputPath, "day-filtered-domain.csv-chunks"),
       new CopyDistributerStrategy(inputPath, outputPath, "month-filtered-fulldomain.csv-chunks"),
 
-      new ChunkHashDistributerStrategy(inputPath, outputPath, "filtered-grouped-fulldomain.csv"),
+      new ChunkHashDistributerStrategy(inputPath, outputPath, "filtered-grouped-fulldomain.csv-chunks"),
+      new ChunkHashDistributerStrategy(inputPath, outputPath, "fulldomain-domain.csv-chunks"),
       
       // CSV files are ready to use, just copy over.
       // We don't distribute 'all' domain files like `day-top-100-all-domains.csv`, only the filtered ones.

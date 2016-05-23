@@ -12,7 +12,7 @@ public class GroupedFullDomainsAnalyzerStrategy extends ChunkGlommerAbstractStra
   }
 
   public String fileName() {
-    return String.format("%s-grouped-fulldomain.csv", this.filter.getName());
+    return String.format("%s-grouped-fulldomain.csv-chunks", this.filter.getName());
   }
 
   public String getInputFileRegex() {

@@ -11,7 +11,8 @@ public class ChunkParser {
 
   public void feed(String line) {
     // Expect header name.
-    if (this.currentHeader == null) {
+    // Start at the first non-empty line we see when we have no header (start of file or after a chunk).
+    if (this.currentHeader == null && line.length() > 0) {
       this.currentHeader = line;
       this.callback.header(line);
     // Or see if we're at the end of a block.
