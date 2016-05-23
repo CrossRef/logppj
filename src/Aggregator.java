@@ -85,6 +85,11 @@ public class Aggregator {
           // Line is [date, doi, code, full-domain, subdomains, domain].
           String[] line = lineInput.split("\t", -1);
 
+          if (line.length != 6) {
+            System.err.format("Error: Ignoring line with %d parts: %s\n", line.length, lineInput);
+            continue;
+          }
+
           // Reject except for this partition.
           // Strategy knows how to partition.
           if (strategy.partition(line) != partitionNumber) {
