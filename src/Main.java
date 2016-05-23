@@ -124,11 +124,11 @@ public class Main {
     Aggregator aggregator = new Aggregator(input, output);
 
     AggregatorStrategy[] strategies = new AggregatorStrategy[] {
-      new DomainCSVAggregatorStrategy(new TruncateDay()),
-      new DomainCSVAggregatorStrategy(new TruncateMonth()),
-      new FullDomainCSVAggregatorStrategy(new TruncateMonth()),
-      new CodeCSVAggregatorStrategy(new TruncateMonth()),
-      new CodeCSVAggregatorStrategy(new TruncateDay())
+      new DomainCountCSVAggregatorStrategy(new TruncateDay()),
+      new DomainCountCSVAggregatorStrategy(new TruncateMonth()),
+      new FullDomainCountCSVAggregatorStrategy(new TruncateMonth()),
+      new CodeCountCSVAggregatorStrategy(new TruncateMonth()),
+      new CodeCountCSVAggregatorStrategy(new TruncateDay())
       // TODO maybe put DOIs back?
     };
 

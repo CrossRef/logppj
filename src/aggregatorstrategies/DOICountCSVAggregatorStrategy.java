@@ -11,7 +11,7 @@ import java.util.Arrays;
 // Count DOI name per day.
 // Output as CSV Chunks
 // TODO not currently in use
-public class DOICSVAggregatorStrategy implements AggregatorStrategy {
+public class DOICountCSVAggregatorStrategy implements AggregatorStrategy {
   long inputCount = 0;
 
   // If the DOI isn't resolved at least one on most days, don't bother.
@@ -22,7 +22,7 @@ public class DOICSVAggregatorStrategy implements AggregatorStrategy {
 
   Partitioner partitioner;
 
-  public DOICSVAggregatorStrategy() {
+  public DOICountCSVAggregatorStrategy() {
     this.reset();
   }
 

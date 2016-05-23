@@ -10,7 +10,7 @@ import java.util.Arrays;
 
 // Count referring type code per day.
 // Output as CSV Chunks.
-public class CodeCSVAggregatorStrategy implements AggregatorStrategy {
+public class CodeCountCSVAggregatorStrategy implements AggregatorStrategy {
   // How to truncate dates.
   private DateProjector dateProjector;
 
@@ -21,14 +21,14 @@ public class CodeCSVAggregatorStrategy implements AggregatorStrategy {
 
   private Partitioner partitioner;
 
-  public CodeCSVAggregatorStrategy(DateProjector dateProjector) {
+  public CodeCountCSVAggregatorStrategy(DateProjector dateProjector) {
     this.dateProjector = dateProjector;
     this.partitioner = new Partitioner(this.numPartitions());
     this.reset();
   }
 
   public String toString() {
-    return String.format("CodeCSVAggregatorStrategy, %d partitions", this.numPartitions());
+    return String.format("CodeCountCSVAggregatorStrategy, %d partitions", this.numPartitions());
   }
 
   // We only need one pass at this, the domain of codes is very small.
