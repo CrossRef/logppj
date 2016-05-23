@@ -45,6 +45,9 @@ public class Main {
       new DomainAnalyzerStrategy(new TruncateDay(), new EverythingFilter()),
       new FullDomainAnalyzerStrategy(new TruncateMonth(), domainFilter),
       new DomainAnalyzerStrategy(new TruncateDay(), domainFilter),
+
+      new GroupedFullDomainsAnalyzerStrategy(new EverythingFilter()),
+      new GroupedFullDomainsAnalyzerStrategy(domainFilter),
       
       // Top N once with unfiltered domains.
       new TopNDomainsTableAnalyzerStrategy(10, new TruncateDay(), new EverythingFilter()),
@@ -56,7 +59,7 @@ public class Main {
       new TopNDomainsTableAnalyzerStrategy(10, new TruncateDay(), domainFilter),
       new TopNDomainsTableAnalyzerStrategy(10, new TruncateMonth(), domainFilter),
       new TopNDomainsTableAnalyzerStrategy(100, new TruncateDay(), domainFilter),
-      new TopNDomainsTableAnalyzerStrategy(100, new TruncateMonth(), domainFilter),
+      new TopNDomainsTableAnalyzerStrategy(100, new TruncateMonth(), domainFilter)
     };
 
     try {
@@ -88,6 +91,8 @@ public class Main {
       new CopyDistributerStrategy(inputPath, outputPath, "day-filtered-domain.csv-chunks"),
       new CopyDistributerStrategy(inputPath, outputPath, "day-filtered-domain.csv-chunks"),
       new CopyDistributerStrategy(inputPath, outputPath, "month-filtered-fulldomain.csv-chunks"),
+
+      new ChunkHashDistributerStrategy(inputPath, outputPath, "filtered-grouped-fulldomain.csv"),
       
       // CSV files are ready to use, just copy over.
       // We don't distribute 'all' domain files like `day-top-100-all-domains.csv`, only the filtered ones.
@@ -128,7 +133,9 @@ public class Main {
       new DomainCountCSVAggregatorStrategy(new TruncateMonth()),
       new FullDomainCountCSVAggregatorStrategy(new TruncateMonth()),
       new CodeCountCSVAggregatorStrategy(new TruncateMonth()),
-      new CodeCountCSVAggregatorStrategy(new TruncateDay())
+      new CodeCountCSVAggregatorStrategy(new TruncateDay()),
+
+      new GroupedFullDomainsAggregatorStrategy()
       // TODO maybe put DOIs back?
     };
 

@@ -10,6 +10,8 @@ import java.util.HashMap;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Collections;
+import java.util.SortedSet;
+import java.util.TreeSet;
 
 // Take a load of CSV Chunk files and combine into one file, combining the sections over files.
 // Don't try and parse the CSV lines within each chunk.
@@ -23,7 +25,8 @@ public abstract class ChunkGlommerAbstractStrategy implements AnalyzerStrategy, 
   private ChunkParser chunkParser = new ChunkParser(this);
 
   // header (e.g. domain name) -> lines within chunks with that header. 
-  private Map<String, List<String>> collection;
+  // They'll always be unique either in the input (e.g. date,count pairs) or we'll want to uniqufiy them (e.g. union the set of domains).
+  private Map<String, SortedSet<String>> collection;
 
   // Name of current chunk.
   private String currentChunkHeader;
@@ -86,10 +89,7 @@ public abstract class ChunkGlommerAbstractStrategy implements AnalyzerStrategy, 
       return;
     }
 
-    for (Map.Entry<String, List<String>> headerEntry : this.collection.entrySet()) {
-      // Sort dates within the domain chunk.
-      Collections.sort(headerEntry.getValue());
-
+    for (Map.Entry<String, SortedSet<String>> headerEntry : this.collection.entrySet()) {
       this.outputFile.write(headerEntry.getKey());
       this.outputFile.write("\n");
       for (String dateEntry : headerEntry.getValue()) {
@@ -119,7 +119,7 @@ public abstract class ChunkGlommerAbstractStrategy implements AnalyzerStrategy, 
     }
 
     if (this.collection.get(this.currentChunkHeader) == null) {
-      List<String> entry = new ArrayList<>();
+      SortedSet<String> entry = new TreeSet<>();
       entry.add(line);
       this.collection.put(this.currentChunkHeader, entry);
     } else {
