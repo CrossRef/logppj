@@ -82,10 +82,10 @@ public class Aggregator {
 
         String lineInput;
         while ((lineInput = input.readLine()) != null) {
-          // Line is [date, doi, code, full-domain, subdomains, domain].
+          // Line is [date, doi, code, full-domain, subdomains, domain, path].
           String[] line = lineInput.split("\t", -1);
 
-          if (line.length != 6) {
+          if (line.length != 7) {
             System.err.format("Error: Ignoring line with %d parts: %s\n", line.length, lineInput);
             continue;
           }
