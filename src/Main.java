@@ -5,6 +5,8 @@ import logpp.aggregatorstrategies.*;
 import logpp.analyzerstrategies.*;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.util.List;
+import java.util.ArrayList;
 
 import java.util.Arrays;
 
@@ -126,7 +128,7 @@ public class Main {
     File output = new File(outputPath);
 
     System.out.format("Process %s to %s\n", inputPath, outputPath);
-    Aggregator aggregator = new Aggregator(input, output);
+    
 
     AggregatorStrategy[] strategies = new AggregatorStrategy[] {
       new DomainCountCSVAggregatorStrategy(new TruncateDay()),
@@ -139,16 +141,31 @@ public class Main {
       // TODO maybe put DOIs back?
     };
 
+    
     try {
+      List<Thread> threads = new ArrayList<>();
       for (AggregatorStrategy strategy: strategies) {
         System.out.format("Aggregate with strategy: %s \n", strategy.toString());
-        aggregator.run(strategy);
+        Aggregator aggregator = new Aggregator(input, output, strategy);
+        Thread thread = new Thread(aggregator);
+        threads.add(thread);
+        thread.start(); 
         System.out.format("Finished aggregate with strategy: %s \n", strategy.toString());
+      }
+
+      for (Thread thread: threads) {
+        synchronized(thread) {
+          System.out.println("Wait..." + thread.toString());
+          thread.join();
+          System.out.println("Done " + thread.toString());
+        }
       }
     } catch (Exception e) {
       System.err.println("Error:");
       e.printStackTrace();
     }
+
+    
   }
 
   // Preprocess all files.
