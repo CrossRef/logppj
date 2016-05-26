@@ -23,7 +23,7 @@ public class LineParser {
   // The currently selected pattern.
   private Pattern pattern = null;
 
-  // Parse string into [dateString, DOI, referrer domain]
+  // Parse string into [dateString, DOI, referrer]
   public String[] parse(String line) {
     // First time, find the one that works. This will be reset every new file.
     if (this.pattern == null) {
@@ -58,7 +58,7 @@ public class LineParser {
     if (pattern == this.re1) {
       String date = matcher.group(1);
       String doi = matcher.group(2).toLowerCase();
-      String referrer = matcher.group(3).toLowerCase();
+      String referrer = matcher.group(3);
       return new String[] {date, doi, referrer};
     } else if (pattern == this.re2) {
       String date = matcher.group(1);

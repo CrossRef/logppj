@@ -164,8 +164,6 @@ public class Main {
       System.err.println("Error:");
       e.printStackTrace();
     }
-
-    
   }
 
   // Preprocess all files.

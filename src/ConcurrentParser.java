@@ -486,7 +486,12 @@ class ParserConcurrentItem implements Runnable {
 
     String[] domainParts = this.etld.getParts(host);
 
-    return new String[] {code, host, domainParts[0], domainParts[1], path};
+    // Return code, host, subdomain, domain, path.
+    return new String[] {code,
+                         host.toLowerCase(),
+                         domainParts[0].toLowerCase(),
+                         domainParts[1].toLowerCase(),
+                         path};
   }
 }
 
