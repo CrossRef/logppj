@@ -6,7 +6,8 @@ import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 
 
-// A date parser. Stateful, as it uses the appropriate format and remembers what it used last time.
+// A date parser.
+// Stateful, as it uses the appropriate format and remembers what it used last time.
 public class DateParser {
   // Different standards in use at different times. We have a pallate of formats available to us.
 

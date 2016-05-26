@@ -176,7 +176,7 @@ public class Main {
     File inputDir = new File(inputPath);
     File outputDir = new File(outputPath);
 
-    Parser parser = new Parser(inputDir, outputDir);
+    ConcurrentParser parser = new ConcurrentParser(inputDir, outputDir);
 
     // This designed for supervised use. Don't try to recover.
     try {
