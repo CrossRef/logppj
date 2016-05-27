@@ -31,11 +31,11 @@ public class DOICountCSVAggregatorStrategy implements AggregatorStrategy {
   }
 
   public int numPartitions() {
-    return 20;
+    return 5;
   }
 
   public String fileName(String date) {
-    return String.format("%s-doi.csv-chunks",  date);
+    return String.format("%s-day-doi.csv-chunks",  date);
   }
 
   public void reset() {
