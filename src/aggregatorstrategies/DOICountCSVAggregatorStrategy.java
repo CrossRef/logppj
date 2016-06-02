@@ -14,8 +14,8 @@ import java.util.Arrays;
 public class DOICountCSVAggregatorStrategy implements AggregatorStrategy {
   long inputCount = 0;
 
-  // If the DOI isn't resolved at least one on most days, don't bother.
-  static Integer PER_MONTH_CUTOFF = 20;
+  // If the DOI isn't resolved at least 10 times per day on average, don't bother.
+  static Integer PER_MONTH_CUTOFF = 30 * 10;
 
   // Map of Domain string => Date string => count.
   HashMap<String, Map<String, Integer>> counter;
@@ -31,7 +31,7 @@ public class DOICountCSVAggregatorStrategy implements AggregatorStrategy {
   }
 
   public int numPartitions() {
-    return 5;
+    return 20;
   }
 
   public String fileName(String date) {
