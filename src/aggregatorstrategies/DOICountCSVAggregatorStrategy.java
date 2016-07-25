@@ -8,11 +8,13 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Arrays;
 
-// Count DOI name per day.
+// Count DOI name per month.
 // Output as CSV Chunks
-// TODO not currently in use
 public class DOICountCSVAggregatorStrategy implements AggregatorStrategy {
   long inputCount = 0;
+
+  // How to truncate dates.
+  private DateProjector dateProjector = new TruncateMonth();
 
   // If the DOI isn't resolved at least 1 time per day on average, don't bother.
   static Integer PER_MONTH_CUTOFF = 30 * 1;
@@ -35,7 +37,7 @@ public class DOICountCSVAggregatorStrategy implements AggregatorStrategy {
   }
 
   public String fileName(String date) {
-    return String.format("%s-day-doi.csv-chunks",  date);
+    return String.format("%s-month-doi.csv-chunks", date);
   }
 
   public void reset() {
@@ -54,12 +56,14 @@ public class DOICountCSVAggregatorStrategy implements AggregatorStrategy {
     String doi = line[1].toLowerCase();
     String date = line[0];
 
+    String projectedDate = this.dateProjector.project(date);
+
     Map<String, Integer> dateCounter = this.counter.get(doi);
     if (dateCounter == null) {
       dateCounter = new HashMap<String, Integer>();
       this.counter.put(doi, dateCounter);
     }
-    dateCounter.put(date, dateCounter.getOrDefault(date, 0) + 1);
+    dateCounter.put(projectedDate, dateCounter.getOrDefault(projectedDate, 0) + 1);
 
     inputCount ++;
     if (inputCount % 1000000 == 0) {

@@ -97,7 +97,7 @@ public class Main {
 
       new ChunkHashDistributerStrategy(inputPath, outputPath, "filtered-grouped-fulldomain.csv-chunks"),
       new ChunkHashDistributerStrategy(inputPath, outputPath, "fulldomain-domain.csv-chunks"),
-      new ChunkHashDistributerStrategy(inputPath, outputPath, "day-doi.csv-chunks"),
+      new ChunkHashDistributerStrategy(inputPath, outputPath, "month-doi.csv-chunks"),
       
       // CSV files are ready to use, just copy over.
       // We don't distribute 'all' domain files like `day-top-100-all-domains.csv`, only the filtered ones.

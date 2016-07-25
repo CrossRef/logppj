@@ -11,12 +11,12 @@ public class DOIAnalyzerStrategy extends ChunkGlommerAbstractStrategy implements
   }
 
   public String fileName() {
-    return "day-doi.csv-chunks";
+    return "month-doi.csv-chunks";
   }
 
   // Regex for the kind of files this analyzer wants to see.
   public String getInputFileRegex() {
-    return "\\d\\d\\d\\d-\\d\\d\\-day-doi.csv-chunks";
+    return "\\d\\d\\d\\d-\\d\\d\\-month-doi.csv-chunks";
   }
 
   public int getNumPartitions() {
