@@ -20,6 +20,6 @@ public class DomainAnalyzerStrategy extends ChunkGlommerAbstractStrategy impleme
   }
 
   public int getNumPartitions() {
-    return 1;
+    return 10;
   }
 }
