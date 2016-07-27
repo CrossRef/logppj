@@ -2,6 +2,7 @@ package logpp;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
+import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -81,7 +82,7 @@ public class Aggregator implements Runnable {
           System.out.format("%s: Partition %d / %d\n", filename, partitionNumber, numPartitions-1);
 
           // New handle each time. Doesn't happen often.
-          BufferedReader input = new BufferedReader(new InputStreamReader(new GZIPInputStream(new FileInputStream(inputFile)), "UTF-8"));
+          BufferedReader input = new BufferedReader(new InputStreamReader(new GZIPInputStream(new FileInputStream(inputFile), 131072), "UTF-8"), 131072);
 
           String lineInput;
           while ((lineInput = input.readLine()) != null) {

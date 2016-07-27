@@ -41,6 +41,7 @@ public class DOICountCSVAggregatorStrategy implements AggregatorStrategy {
   }
 
   public void reset() {
+    // In tests, it doesn't make any difference pre-dimensioning to either 1,000,000 or 10,000,000.
     this.counter = new HashMap<String, Map<String, Integer>>();
     this.partitioner = new Partitioner(this.numPartitions());
     this.inputCount = 0;
@@ -53,7 +54,7 @@ public class DOICountCSVAggregatorStrategy implements AggregatorStrategy {
 
   // line is [date, doi, code, full-domain, subdomains, domain]
   public void feed(String[] line) {
-    String doi = line[1].toLowerCase();
+    String doi = line[1];
     String date = line[0];
 
     String projectedDate = this.dateProjector.project(date);
@@ -72,8 +73,6 @@ public class DOICountCSVAggregatorStrategy implements AggregatorStrategy {
   }
 
   public void write(Writer writer) throws IOException {
-    // TODO month count threshold? 
-
     for (Map.Entry<String, Map<String, Integer>> doiEntry : this.counter.entrySet()) {
       // If the total for this month for this DOI isn't over the threshold, don't write.
       // Otherwise we get lots of single 'doi was resolved once on this date ever's.
