@@ -33,7 +33,7 @@ public class DOICountCSVAggregatorStrategy implements AggregatorStrategy {
   }
 
   public int numPartitions() {
-    return 30;
+    return 15;
   }
 
   public String fileName(String date) {
