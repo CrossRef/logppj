@@ -29,6 +29,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.zip.GZIPInputStream;
 import java.io.FileInputStream;
+import java.util.concurrent.atomic.AtomicInteger;
 
 // Take all files from the `processed` directory and perform various aggregations, as determined by an `AggregatorStrategy`.
 public class Aggregator implements Runnable {
@@ -52,6 +53,23 @@ public class Aggregator implements Runnable {
   
   public void run() {
     try {
+    final AtomicInteger totalLinesCounter = new AtomicInteger(0);
+
+    Thread reporter = new Thread() {
+        public void run() {
+          try {
+            // Interrupt breaks the thread.
+            while (! Thread.currentThread().isInterrupted()) {
+              System.out.format("Tick '" + Aggregator.this.strategy.toString() + "'. Processed lines: %d\n", totalLinesCounter.get());
+              Thread.sleep(10000);
+            }
+          } catch (InterruptedException e) {}
+        
+      }
+    };
+
+      reporter.start();
+
       int numPartitions = strategy.numPartitions();
       
       // One file is a month, so counts are self-contained.
@@ -101,6 +119,7 @@ public class Aggregator implements Runnable {
             }
 
             totalLines++;
+            totalLinesCounter.getAndIncrement();
 
             strategy.feed(line);
 
@@ -112,8 +131,6 @@ public class Aggregator implements Runnable {
             }
           }
           
-          System.out.format("Processed lines: %d\n", totalLines);
-
           // We've finished this partition for this month, flush out the counts and start again.
           strategy.write(output);
           strategy.reset();
@@ -126,6 +143,7 @@ public class Aggregator implements Runnable {
         }
 
         output.close();
+        reporter.interrupt();
       }
       
     } catch (Exception e) {
