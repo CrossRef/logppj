@@ -16,8 +16,8 @@ public class DOICountCSVAggregatorStrategy implements AggregatorStrategy {
   // How to truncate dates.
   private DateProjector dateProjector = new TruncateMonth();
 
-  // If the DOI isn't resolved at least 1 time per month, don't bother.
-  static Integer PER_MONTH_CUTOFF = 1;
+  // If the DOI isn't resolved at least 5 time per month, don't bother.
+  static Integer PER_MONTH_CUTOFF = 5;
 
   // Map of Domain string => Date string => count.
   HashMap<String, Map<String, Integer>> counter;

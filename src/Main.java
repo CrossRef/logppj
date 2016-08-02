@@ -164,6 +164,7 @@ public class Main {
     } catch (Exception e) {
       System.err.println("Error:");
       e.printStackTrace();
+      System.exit(1);
     }
   }
 
