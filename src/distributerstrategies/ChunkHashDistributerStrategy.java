@@ -20,6 +20,11 @@ public class ChunkHashDistributerStrategy implements DistributerStrategy, ChunkP
   private File inputDir;
   private File outputDir;
   private MessageDigest md5;
+
+  // How many characters of the has are we going to use?
+  // 3 is suitable for small sets, like the domain files
+  // 4 is suitable for larger ones, like DOIs 
+  private int hashChars;
   
   // Bucket name to open writer for that bucket.
   private Map<String, Writer> handles = new HashMap<>();
@@ -27,10 +32,11 @@ public class ChunkHashDistributerStrategy implements DistributerStrategy, ChunkP
   // Current bucket we're writing to.
   private Writer currentHandle;
 
-  public ChunkHashDistributerStrategy(String inputDir, String outputDir, String filename) {
+  public ChunkHashDistributerStrategy(String inputDir, String outputDir, String filename, int hashChars) {
     this.filename = filename;
     this.inputDir = new File(inputDir);
     this.outputDir = new File(outputDir);
+    this.hashChars = hashChars;
     try {
       this.md5 =  MessageDigest.getInstance("MD5");
     } catch (NoSuchAlgorithmException ex) {
@@ -68,7 +74,7 @@ public class ChunkHashDistributerStrategy implements DistributerStrategy, ChunkP
   private Writer getBucket(String input) throws IOException, UnsupportedEncodingException {
     byte[] digest = this.md5.digest(input.getBytes("UTF-8"));
     String result = bytesToHex(digest);
-    String bucketName = filename + "_" + result.substring(0, 3);
+    String bucketName = filename + "_" + result.substring(0, this.hashChars-1);
 
     Writer handle = this.handles.get(bucketName);
     if (handle == null) {
