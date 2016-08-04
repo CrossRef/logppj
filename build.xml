@@ -32,11 +32,12 @@
   </target>
 
   <target name="run" depends="compile">
-    <java classname="logpp.Main" classpath="${build}">
+    <java classname="logpp.Main" classpath="${build}" fork="true">
       <arg value="${arg0}"/>
       <arg value="${arg1}"/>
+      <jvmarg value="-Xms6G"/>
+      <jvmarg value="-Xmx6G" />
     </java>
-
   </target>
 
   <target name="clean"

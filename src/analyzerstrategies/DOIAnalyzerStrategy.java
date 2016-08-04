@@ -20,6 +20,6 @@ public class DOIAnalyzerStrategy extends ChunkGlommerAbstractStrategy implements
   }
 
   public int getNumPartitions() {
-    return 10;
+    return 30;
   }
 }
