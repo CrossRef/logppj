@@ -63,6 +63,8 @@ public class Main {
       new TopNDomainsTableAnalyzerStrategy(10, new TruncateDay(), domainFilter),
       new TopNDomainsTableAnalyzerStrategy(10, new TruncateMonth(), domainFilter),
       new TopNDomainsTableAnalyzerStrategy(100, new TruncateMonth(), domainFilter)
+
+      
     };
 
     try {
@@ -139,7 +141,10 @@ public class Main {
       new CodeCountCSVAggregatorStrategy(new TruncateDay()),
 
       new GroupedFullDomainsAggregatorStrategy(),
-      new DOICountCSVAggregatorStrategy()
+      new DOICountCSVAggregatorStrategy(),
+
+      new AllCountCSVAggregatorStrategy(new TruncateDay()),
+      new AllCountCSVAggregatorStrategy(new TruncateMonth())
     };
 
     
