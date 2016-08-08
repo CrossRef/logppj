@@ -64,7 +64,7 @@ public class Main {
       new TopNDomainsTableAnalyzerStrategy(10, new TruncateMonth(), domainFilter),
       new TopNDomainsTableAnalyzerStrategy(100, new TruncateMonth(), domainFilter)
 
-      
+
     };
 
     try {
@@ -91,7 +91,7 @@ public class Main {
     DistributerStrategy[] strategies = new DistributerStrategy[] {
       // For the chunk files, split by a hash.
       new ChunkHashDistributerStrategy(inputPath, outputPath, "day-filtered-domain.csv-chunks", 3),
-      new ChunkHashDistributerStrategy(inputPath, outputPath, "month-filtered-fulldomain.csv-chunks", 3),
+      new ChunkHashDistributerStrategy(inputPath, outputPath, "month-filtered-fulldomain.csv-chunks", 4),
 
       // And copy the same files anyway, someone might want them.
       new CopyDistributerStrategy(inputPath, outputPath, "day-filtered-domain.csv-chunks"),
@@ -99,7 +99,7 @@ public class Main {
 
       new ChunkHashDistributerStrategy(inputPath, outputPath, "filtered-grouped-fulldomain.csv-chunks", 3),
       new ChunkHashDistributerStrategy(inputPath, outputPath, "fulldomain-domain.csv-chunks", 3),
-      new ChunkHashDistributerStrategy(inputPath, outputPath, "month-doi.csv-chunks", 4),
+      new ChunkHashDistributerStrategy(inputPath, outputPath, "month-doi.csv-chunks", 5),
       
       // CSV files are ready to use, just copy over.
       // We don't distribute 'all' domain files like `day-top-100-all-domains.csv`, only the filtered ones.
