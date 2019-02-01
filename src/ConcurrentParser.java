@@ -101,13 +101,29 @@ class ConcurrentParser {
     Set<String> dates = new HashSet<>();
     Map<String, ParserConcurrentItem> dateItems = new HashMap<>();
 
+    Pattern datePattern = Pattern.compile("-(\\d+)-");
+
+    System.out.println("Input dir:" + this.inputDirectory);
+    System.out.println("List: " + this.inputDirectory.listFiles());
+
+    if (!this.inputDirectory.exists()) {
+      System.err.println("Error, log input directory does not exist:" + this.inputDirectory);
+    }
+
     for (File inputFile : this.inputDirectory.listFiles()) {
-      if (!(inputFile.getName().startsWith("access_log") && inputFile.getName().endsWith(".gz"))) {
+      if (!inputFile.getName().endsWith(".gz")) {
         continue;
       }
 
-      String date = inputFile.getName().substring(11, 17);
-      dates.add(date);
+      // Log filename format changed in 2017.
+      if (!(inputFile.getName().startsWith("access_log") || inputFile.getName().startsWith("CrossRef-access.log"))) {
+        continue;
+      }
+
+      Matcher match = datePattern.matcher(inputFile.getName());
+      if (match.find()) {
+        dates.add(match.group(1));
+      }
     }
 
     for (String date : dates) {
@@ -115,7 +131,8 @@ class ConcurrentParser {
       items.add(item);
 
       for (File inputFile : this.inputDirectory.listFiles()) {
-        if (inputFile.getName().contains(date)) {
+        // Sometimes we get matches in partial downloaded files, e.g. "xyz.gz.tmp". Exclude those.
+        if (inputFile.getName().contains(date) && inputFile.getName().endsWith(".gz")) {
           item.addFile(inputFile);
         }
       }
@@ -190,7 +207,6 @@ class ParserConcurrentItem implements Runnable {
   }
 
   public void run() {
-    try {
       System.out.format("Start parsing %s\n", this.filter);
 
       System.out.println("Run");
@@ -215,149 +231,152 @@ class ParserConcurrentItem implements Runnable {
       int malformedSkips = 0;
 
       // Keep track of the most current year month string. Not monotonic, could jump anywhere.
-      String previousYearMonth  = "";
+      String previousYearMonth = "";
       // The current output file, cached between lines. Only changes when the month changes, which is virtually never (well, about 1 time in a million)
       Writer outputFile = null;
 
       for (File inputFile : this.files) {
-        // LineParser uses the first format that works for this file.
-        // So a new one each file.
-        LineParser lineParser = new LineParser();
+        try {
+          // LineParser uses the first format that works for this file.
+          // So a new one each file.
+          LineParser lineParser = new LineParser();
 
-        System.out.format("Process input file %s, total %d\n", inputFile.getName(), totalFiles);
+          System.out.format("Process input file %s, total %d\n", inputFile.getName(), totalFiles);
 
-        InputStream fileStream = new FileInputStream(inputFile);
-        InputStream gzipStream = new GZIPInputStream(fileStream);
-        Reader decoder = new InputStreamReader(gzipStream, "UTF-8");
-        BufferedReader bufferedReader = new BufferedReader(decoder);
+          InputStream fileStream = new FileInputStream(inputFile);
+          InputStream gzipStream = new GZIPInputStream(fileStream);
+          Reader decoder = new InputStreamReader(gzipStream, "UTF-8");
+          BufferedReader bufferedReader = new BufferedReader(decoder);
 
-        String line;
-        while ((line = bufferedReader.readLine()) != null) {
-          try {
-            // Newlines count for something.
-            totalChars += line.length() + 1;
+          String line;
+          while ((line = bufferedReader.readLine()) != null) {
+            try {
+              // Newlines count for something.
+              totalChars += line.length() + 1;
 
-            String[] match = lineParser.parse(line);
+              String[] match = lineParser.parse(line);
 
-            // It's possible that lines fail to parse.
-            //  - OpenURL lines are missing fields so skip them.
-            //  - Some DOIs have spaces in them and it's impossible to parse.
-            //  - Sometimes huge fragments of HTML are passed in.
-            //  - Sometimes weird bytes creep in. Call it solar radiation.
-            // The failure rate is roughly 0.05%
-            if (match == null) {
-              if (openurlRe.matcher(line).find()) {
-                openUrlIgnores ++;
+              // It's possible that lines fail to parse.
+              //  - OpenURL lines are missing fields so skip them.
+              //  - Some DOIs have spaces in them and it's impossible to parse.
+              //  - Sometimes huge fragments of HTML are passed in.
+              //  - Sometimes weird bytes creep in. Call it solar radiation.
+              // The failure rate is roughly 0.05%
+              if (match == null) {
+                if (openurlRe.matcher(line).find()) {
+                  openUrlIgnores++;
+                } else {
+                  failedLines++;
+                }
               } else {
-                failedLines ++;
-              }
-            } else {
-              String dateString = match[0];
-              String doi = match[1];
-              String referrerString = match[2];
+                String dateString = match[0];
+                String doi = match[1];
+                String referrerString = match[2];
 
-              // Year-month for log file name, year-month-day for log entry.
-              String[] parsedDate = this.dateParser.parseDate(dateString);
-              String yearMonth = parsedDate[0];
-              String yearMonthDay = parsedDate[1];
-              
-              // Interrupt this processing to take a shortcut if necessary.
-              // Decide on the output writer for this line. In nearly all cases it will be the same as last time.
-              // If the year-month changed look up the new file.
-              
-              // The concurrentparser synchronizes access to this.
-              // This will only happen 
-              if (!yearMonth.equals(previousYearMonth)) {
-                System.out.format("Change writer: %s -> %s\n", previousYearMonth, yearMonth);
+                // Year-month for log file name, year-month-day for log entry.
+                String[] parsedDate = this.dateParser.parseDate(dateString);
+                String yearMonth = parsedDate[0];
+                String yearMonthDay = parsedDate[1];
 
-                // Wight have a number of file handles on the go.
-                // Save having too many fullish buffers hanging around.
-                // First time round it's null.
-                if (outputFile != null) {
+                // Interrupt this processing to take a shortcut if necessary.
+                // Decide on the output writer for this line. In nearly all cases it will be the same as last time.
+                // If the year-month changed look up the new file.
+
+                // The concurrentparser synchronizes access to this.
+                // This will only happen
+                if (!yearMonth.equals(previousYearMonth)) {
+                  System.out.format("Change writer: %s -> %s\n", previousYearMonth, yearMonth);
+
+                  // Wight have a number of file handles on the go.
+                  // Save having too many fullish buffers hanging around.
+                  // First time round it's null.
+                  if (outputFile != null) {
+                    synchronized (outputFile) {
+                      outputFile.flush();
+                    }
+                  }
+
+                  outputFile = this.concurrentParser.getOutputFile(yearMonth);
+                  previousYearMonth = yearMonth;
+                }
+
+                // If it is a file that we refused to over-write, don't bother parsing the rest.
+                if (outputFile == this.concurrentParser.nullWriter) {
+                  continue;
+                }
+
+                // Get the full domain and code.
+                String[] parsedReferrer = parseReferrer(referrerString);
+                String referrerCode = parsedReferrer[0];
+                String referrerFullDomain = parsedReferrer[1];
+                String referrerSubdomains = parsedReferrer[2];
+                String referrerDomain = parsedReferrer[3];
+                String referrerPath = parsedReferrer[4];
+
+                if (yearMonthDay.contains("\t") ||
+                        doi.contains("\t") ||
+                        referrerCode.contains("\t") ||
+                        referrerFullDomain.contains("\t") ||
+                        referrerSubdomains.contains("\t") ||
+                        referrerDomain.contains("\t") ||
+                        referrerPath.contains("\t")) {
+                  System.err.format("ERROR: Malformed input line: %s\n", line);
+                  malformedSkips++;
+                } else {
+                  // There is mostly zero contention for files.
+                  // For spill-over between month there will be some blocking, but it's a tiny amount.
                   synchronized (outputFile) {
-                    outputFile.flush();
+                    outputFile.write(yearMonthDay);
+                    outputFile.write("\t");
+                    outputFile.write(doi);
+                    outputFile.write("\t");
+                    outputFile.write(referrerCode);
+                    outputFile.write("\t");
+                    outputFile.write(referrerFullDomain);
+                    outputFile.write("\t");
+                    outputFile.write(referrerSubdomains);
+                    outputFile.write("\t");
+                    outputFile.write(referrerDomain);
+                    outputFile.write("\t");
+                    outputFile.write(referrerPath);
+                    outputFile.write("\n");
                   }
                 }
-
-                outputFile = this.concurrentParser.getOutputFile(yearMonth);
-                previousYearMonth = yearMonth;
               }
 
-              // If it is a file that we refused to over-write, don't bother parsing the rest.
-              if (outputFile == this.concurrentParser.nullWriter) {
-                continue;
-              }
+              totalLines++;
 
-              // Get the full domain and code.
-              String[] parsedReferrer = parseReferrer(referrerString);
-              String referrerCode = parsedReferrer[0];
-              String referrerFullDomain = parsedReferrer[1];
-              String referrerSubdomains = parsedReferrer[2];
-              String referrerDomain = parsedReferrer[3];
-              String referrerPath = parsedReferrer[4];
+              // Every million lines.
+              if (totalLines % 1000000 == 0) {
+                System.out.format("Processed lines: %d, characters: %d, failed: %d, OpenURL: %d, malformed skips: %d\n", totalLines, totalChars, failedLines, openUrlIgnores, malformedSkips);
 
-              if (yearMonthDay.contains("\t") ||
-                  doi.contains("\t") ||
-                  referrerCode.contains("\t") ||
-                  referrerFullDomain.contains("\t") ||
-                  referrerSubdomains.contains("\t") ||
-                  referrerDomain.contains("\t") ||
-                  referrerPath.contains("\t")) {
-                System.err.format("ERROR: Malformed input line: %s\n", line);
-                malformedSkips ++;
-              } else {
-                // There is mostly zero contention for files. 
-                // For spill-over between month there will be some blocking, but it's a tiny amount.
-                synchronized (outputFile) {
-                  outputFile.write(yearMonthDay);
-                  outputFile.write("\t");
-                  outputFile.write(doi);
-                  outputFile.write("\t");
-                  outputFile.write(referrerCode);
-                  outputFile.write("\t");
-                  outputFile.write(referrerFullDomain);
-                  outputFile.write("\t");
-                  outputFile.write(referrerSubdomains);
-                  outputFile.write("\t");
-                  outputFile.write(referrerDomain);
-                  outputFile.write("\t");
-                  outputFile.write(referrerPath);
-                  outputFile.write("\n");
-                }
+                // This solves weird flushing issues.
+                System.out.println("");
               }
+            } catch (Exception e) {
+              System.out.println("ERROR ");
+              e.printStackTrace();
+              System.out.println(line);
             }
-
-            totalLines ++;
-
-            // Every million lines. 
-            if (totalLines % 1000000 == 0) {
-              System.out.format("Processed lines: %d, characters: %d, failed: %d, OpenURL: %d, malformed skips: %d\n", totalLines, totalChars, failedLines, openUrlIgnores, malformedSkips);
-                
-              // This solves weird flushing issues.
-              System.out.println("");
-            }
-          } catch (Exception e) {
-            System.out.println("ERROR ");
-            e.printStackTrace();
-            System.out.println(line);
           }
+
+          bufferedReader.close();
+
+          totalFiles++;
+          System.out.format("Finished file! Processed lines: %d, characters: %d, failed: %d, OpenURL: %d, malformed skips: %d\n", totalLines, totalChars, failedLines, openUrlIgnores, malformedSkips);
+        } catch (Exception e) {
+          System.out.println("Error in parsing file: " + inputFile.getName() + ": " + e.toString());
+          e.printStackTrace();
+          System.exit(1);
         }
-
-        bufferedReader.close();
-
-        totalFiles++;
-        System.out.format("Finished file! Processed lines: %d, characters: %d, failed: %d, OpenURL: %d, malformed skips: %d\n", totalLines, totalChars, failedLines, openUrlIgnores, malformedSkips);
       }
 
       System.out.format("Finished all files! Processed lines: %d, characters: %d, failed: %d, OpenURL: %d\n", totalLines, totalChars, failedLines, openUrlIgnores);
       System.out.println("");
     
       System.out.format("Finished parsing %s\n", this.filter);
-    } catch (Exception e) {
-      System.out.println("Error in parsing: " + e.toString());
-      e.printStackTrace();
-      System.exit(1); 
-    }
+
+
   }
 
   // Parse referrer string into [code, whole-domain, subdomains, domain, path]
